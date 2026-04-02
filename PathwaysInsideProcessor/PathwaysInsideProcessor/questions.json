@@ -1,0 +1,25 @@
+[
+  {
+    "id": 1,
+    "prompt": "What does the ALU do?",
+    "options": [
+      {
+        "text": "Stores data",
+        "explanation": "Registers store data.",
+      },
+      {
+        "text": "Performs arithmetc and logic operations.",
+        "explanation": "Correct!",
+      },
+      {
+        "text": "Controls memory",
+        "explanation": "The control unit manages memory operations.",
+      },
+      {
+        "text": "Fetches instructions",
+        "explanation": "Instruction fetching is handled earlier in the pipeline.",
+      }
+    ],
+    "correctIdx": 1
+  }
+]
