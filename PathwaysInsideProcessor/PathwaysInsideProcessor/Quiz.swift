@@ -1,26 +1,14 @@
 import foundation
 
 // MCQs are easier to design so they are up here first
-struct Question {
+struct Question: Hashable {
     let id: Int
     let prompt: String
     let options: [AnswerOption]
     let correctIdx: Int
 }
 
-let questions: [Question]= [
-    Question(
-        id: 1, 
-        prompt: "What does the ALU do?",
-        options: [
-           AnswerOption(text: "Stores data", explanation: "Registers store data."),
-           AnswerOption(text: "Performs arithmetic and logic operations", explanation: "Correct!"),
-           AnswerOption(text: "Controls Memory", explanation: "Control Unit manages memory."),
-           AnswerOption(text: "Fetches Instructions", explanation: "Instruction Fetch is handled by control logic."),
-        ],
-        correctIdx: 1,
-    )
-]
+let allQuestions = loadQuestions(from: "questions.json")
 
 struct AnswerOption {
     let text: String
@@ -52,12 +40,39 @@ struct Connection {
     let toPort: String
 }
 
-struct Puzzle {
+struct Puzzle: Hashable{
     let components: [Component]
     let correctConnections: {Connection}
 }
+
+let allPuzzles: [Puzzle]
 
 // used on UI SIDE to check user inputs
 func checkPuzzle(userConnections: [Connection], puzzle: Puzzle) -> Bool {
     reutrn Set(userConnections) == Set(puzzle.correctConnections)
 }
+
+// we have the quiz components, now we have to organize them to build an actual quiz
+enum QuizItem {
+    case question(Question)
+    case puzzle(Puzzle)
+}
+
+struct Quiz {
+    let items: [QuizItem]
+}
+
+func generateQuiz(
+    from allQuestions: [Question],
+    and allPuzzles: [Puzzle],
+    totalItems: Int
+) -> Quiz {
+    let mixedPool: [QuizItem] = 
+        allQuestions.map { .question($0) } + 
+        allPuzzles.map { .puzzle($0) }
+    
+    let selected = Array(mixedPool.shuffled().prefix(totalItems))
+
+    return Quiz(items: selected)
+}
+
