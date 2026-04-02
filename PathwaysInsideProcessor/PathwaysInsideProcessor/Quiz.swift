@@ -1,5 +1,10 @@
 import foundation
 
+struct MCQAnswerOption: Codable {
+    let text: String
+    let explanation: String
+}
+
 // MCQs are easier to design so they are up here first
 struct MCQ: Codable {
     let id: Int
@@ -22,11 +27,6 @@ func loadMCQs(from filename: String) -> [MCQ] {
 
 let allMCQs = loadMCQs(from: "mcqs.json")
 print("Loaded \(allMCQs.count) questions")
-
-struct MCQAnswerOption: Codable {
-    let text: String
-    let explanation: String
-}
 
 // used on UI SIDE to check user inputs
 func checkMCQ(mcq: MCQ, selectedIdx: Int) -> Bool {
