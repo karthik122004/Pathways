@@ -1,3 +1,7 @@
+// This is laying out all of the functions and structs that we could need to display quiz
+// This is just for backend processing right now
+// UI integration is yet to happen (Update this msg when it does)
+
 import foundation
 
 // represents mcq answer choices: the answer choice itself & the explanation for it
