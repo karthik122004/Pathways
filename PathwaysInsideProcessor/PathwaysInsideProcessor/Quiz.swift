@@ -99,8 +99,8 @@ struct Quiz {
 // this builds the quiz to be used
 func generateQuiz(mcqs: [MCQ], puzzles: [Puzzle], totalItems: Int) -> Quiz {
     let mixedPool: [QuizItem] = 
-        allMCQs.map { .mcq($0) } + 
-        allPuzzles.map { .puzzle($0) }
+        mcqs.map { .mcq($0) } + 
+        puzzles.map { .puzzle($0) }
     
     let selected = Array(mixedPool.shuffled().prefix(totalItems))
 
@@ -112,34 +112,98 @@ func generateQuiz(mcqs: [MCQ], puzzles: [Puzzle], totalItems: Int) -> Quiz {
 class QuizManager: ObservableObject {
     @Published var quiz: Quiz
     @Published var currentIdx: Int = 0
-    @Published var score: Int = 0
 
+    // store quizAnswers to enable navigation across questions
+    // mcqAnswers stores questionIdx -> selectedIdx
+    @Published var mcqAnswers: [Int: Int] = [:]
+    @Published var puzzleAnswers: [Int: [Connection]] = [:]
+    
     init(quiz: Quiz) {
         self.quiz = quiz
     }
 
+    // Current Item
+    
     var currentItem: QuizItem? {
         // guard is a control statement in swift that is meant to exit fast
-        guard currentIdx < quiz.items.count else { return nil }
+        guard currentIdx >= 0 && currentIdx < quiz.items.count else { return nil }
         return quiz.items[currentIdx]
     }
 
-    func submitMCQAnswer(selectedIdx: Int) -> Bool {
-        // guard case is specifically for enums
-        guard case let .mcq(mcq) = currentItem else { return false }
-        let correct = checkMCQ(mcq: mcq, selectedIdx: selectedIdx)
-        if correct { score += 1 }
-        return correct
+    var isFinished: Bool {
+        return currentIdx == quiz.items.count - 1
     }
 
-    func submitPuzzleAnswer(userConnections: [Connection]) -> Bool {
-        guard case let .puzzle(puzzle) = currentItem else { return false }
-        let correct = checkPuzzle(userConnections: userConnections, puzzle: puzzle)
-        if correct { score += 1 }
-        return correct
+    var totalQuestions: Int {
+        return quiz.items.count
     }
 
-    func nextItem( {
+    // Navigation
+
+    func goNext() {
+        guard currentIdx < quiz.items.count - 1 else { return }
         currentIdx += 1
+    }
+    
+    func goBack() {
+        guard currentIdx > 0 else { return }
+        currentIdx -= 1
+    }
+    func goTo(index: Int) {
+        guard index >= 0 && index < quiz.items.count else { return }
+        currentIdx = index
+    }
+
+    // Answer Submission
+    func submitMCQAnswer(selectedIdx: Int) {
+        // guard case is specifically for enums
+        guard case .mcq = currentItem else { return }
+        mcqAnswers[currentIdx] = selectedIdx
+    }
+
+    func submitPuzzleAnswer(connections: [Connection]) {
+        guard case .puzzle = currentItem else { return }
+        puzzleAnswers[currentIdx] = connections
+    }
+
+    //Answer Retrieval
+    func getMCQAnswer(for index: Int) -> Int? {
+        return mcqAnswers[index]
+    }
+
+    func getPuzzleAnswer(for index: Int) -> [Connection]? {
+        return puzzleAnswers[index]
+    }
+
+    // Checking Answers
+    func isCorrect(at index: Int) -> Bool {
+        guard index >= 0 && index < quiz.items.count else { return false }
+
+        let item = quiz.items[index]
+
+        switch item {
+            case .mcq(let mcq):
+                guard let selected = mcqAnswers[index] else { return false }
+                return selected == mcq.correctIdx
+            case .puzzle(let puzzle):
+                guard let userConnections = puzzleAnswers[index] else { return false }
+                return Set(userConnections) == Set(puzzle.correctConnections)
+        }
+    }
+
+    // Scoring
+    var score: Int {
+        var total = 0
+            for i in 0..<quiz.items.count {
+                if isCorrect(at: i) {
+                    total += 1
+                }
+            }
+        return total
+    }
+
+    var progress: Double {
+        guard quiz.items.count > 0 else { return 0 }
+        return Double(currentIdx + 1) / Double(quiz.items.count)
     }
 }
