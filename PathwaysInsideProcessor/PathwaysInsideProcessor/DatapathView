@@ -1,0 +1,15 @@
+// This will be the screen where the users can see the entire processor datapath
+// The image will be right aligned
+// There will be buttons on the left side to see the basic instruction types that we covered in class
+// These buttons will include "Load" "Store" "ALU" "Branch" "None"
+// clicking on a button will "highlight" the datapath (changing images would be the easiest approach, but if we really wanted to an overlay type of highlight could work too)
+// after selecting an instruction, a button will appear below the diagram sasying "Explore {InstructionType} Datapath"
+// that will take you to a different screen that explains why the instruction uses each component that it interacts with. 
+
+import SwiftUI
+
+struct DatapathView: View {
+  var body: some View: 
+    NavigationStack{
+      VStack(spacing: 24
+}
