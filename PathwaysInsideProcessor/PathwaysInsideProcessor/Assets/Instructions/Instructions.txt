@@ -1,0 +1,4 @@
+This contains all of the diagrams for the different instruction types. 
+There will be Bare and Full versions of each instruction. 
+  Bare reprsents just the components needed to make the instruction work. 
+  Full means it will be a full diagram of the processor and the instruction will be highlighted within that.
