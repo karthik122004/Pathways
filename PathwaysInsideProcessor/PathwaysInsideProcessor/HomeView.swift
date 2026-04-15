@@ -1,32 +1,87 @@
+// HomeView.swift
+// PathwaysInsideProcessor
 //
-//  HomeView.swift
-//  PathwaysInsideProcessor
-//
+// Root screen of the app — entry point for all features.
 
 import SwiftUI
 
 struct HomeView: View {
     var body: some View {
-        NavigationStack{
-            VStack(spacing:24){
-                Text("Pathways: Inside the Processor")
-                    .font(.title)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+        NavigationStack {
+            VStack(spacing: 32) {
+                Spacer()
 
-                NavigationLink("Explore Datapath") {
-                    Text("DatapathView()")
+                VStack(spacing: 8) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 64))
+                        .foregroundColor(.blue)
+                    Text("Pathways")
+                        .font(.largeTitle.bold())
+                    Text("Inside the Processor")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.borderedProminent)
-                
-                NavigationLink("Take Quiz") {
-                    Text("QuizView()")
+
+                VStack(spacing: 16) {
+                    NavigationLink(destination: PuzzleSelectionView()) {
+                        HomeButton(title: "Datapath Puzzle",
+                                   subtitle: "Wire up the processor yourself",
+                                   icon: "puzzlepiece.extension",
+                                   color: .orange)
+                    }
+
+                    NavigationLink(destination: QuizSelectionView()) {
+                        HomeButton(title: "Take Quiz",
+                                   subtitle: "Test your knowledge",
+                                   icon: "checklist",
+                                   color: .green)
+                    }
                 }
-                .buttonStyle(.bordered)
+                .padding(.horizontal, 24)
 
                 Spacer()
             }
-            .padding()
+            .navigationTitle("Pathways")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
+}
+
+// MARK: - Reusable Home Button
+
+private struct HomeButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 28))
+                .foregroundColor(color)
+                .frame(width: 44)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+#Preview {
+    HomeView()
 }

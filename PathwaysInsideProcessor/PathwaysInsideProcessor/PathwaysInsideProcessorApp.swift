@@ -1,8 +1,5 @@
-//
-//  PathwaysInsideProcessorApp.swift
-//  PathwaysInsideProcessor
-
-//
+// PathwaysInsideProcessorApp.swift
+// PathwaysInsideProcessor
 
 import SwiftUI
 
@@ -10,7 +7,7 @@ import SwiftUI
 struct PathwaysInsideProcessorApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
     }
 }

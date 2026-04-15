@@ -1,25 +1,117 @@
 [
   {
     "id": 1,
-    "prompt": "What does the ALU do?",
+    "prompt": "What does the ALU do in a MIPS processor?",
     "options": [
       {
-        "text": "Stores data",
-        "explanation": "Registers store data.",
+        "text": "Stores data permanently",
+        "explanation": "Incorrect. Registers and memory store data. The ALU performs computations."
       },
       {
-        "text": "Performs arithmetc and logic operations.",
-        "explanation": "Correct!",
+        "text": "Performs arithmetic and logic operations",
+        "explanation": "Correct! The ALU (Arithmetic Logic Unit) handles add, subtract, AND, OR, and comparison operations."
       },
       {
-        "text": "Controls memory",
-        "explanation": "The control unit manages memory operations.",
+        "text": "Fetches instructions from memory",
+        "explanation": "Incorrect. Instruction fetching is handled by the PC and Instruction Memory stage."
       },
       {
-        "text": "Fetches instructions",
-        "explanation": "Instruction fetching is handled earlier in the pipeline.",
+        "text": "Writes results back to main memory",
+        "explanation": "Incorrect. Writing to data memory is handled by the Data Memory component using the MemWrite control signal."
       }
     ],
     "correctIdx": 1
+  },
+  {
+    "id": 2,
+    "prompt": "Which control signal enables writing a result back to the Register File?",
+    "options": [
+      {
+        "text": "MemWrite",
+        "explanation": "Incorrect. MemWrite enables writing to Data Memory, not the Register File."
+      },
+      {
+        "text": "MemRead",
+        "explanation": "Incorrect. MemRead enables reading from Data Memory."
+      },
+      {
+        "text": "RegWrite",
+        "explanation": "Correct! RegWrite being asserted (set to 1) allows the Register File to store a new value in the write register."
+      },
+      {
+        "text": "ALUSrc",
+        "explanation": "Incorrect. ALUSrc selects whether the second ALU operand comes from the Register File or the sign-extended immediate."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 3,
+    "prompt": "For a store (sw) instruction, which component receives the computed address from the ALU?",
+    "options": [
+      {
+        "text": "Register File",
+        "explanation": "Incorrect. The store instruction does not write back to a register."
+      },
+      {
+        "text": "Instruction Memory",
+        "explanation": "Incorrect. Instruction Memory is read-only during execution."
+      },
+      {
+        "text": "Data Memory",
+        "explanation": "Correct! The ALU computes base + offset and that address is sent to Data Memory, which then writes the value from the second register."
+      },
+      {
+        "text": "Sign Extend unit",
+        "explanation": "Incorrect. The Sign Extend unit produces the offset input to the ALU, not a consumer of the ALU result."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 4,
+    "prompt": "What does the Zero output of the ALU indicate during a branch (beq) instruction?",
+    "options": [
+      {
+        "text": "The ALU operation produced a zero result, meaning both registers are equal",
+        "explanation": "Correct! For beq, the ALU subtracts the two register values. If the result is zero, both registers held the same value and the branch is taken."
+      },
+      {
+        "text": "The instruction is a NOP",
+        "explanation": "Incorrect. A NOP is a special R-type instruction; the Zero flag is about the ALU result."
+      },
+      {
+        "text": "Data Memory is empty",
+        "explanation": "Incorrect. The Zero flag is produced by the ALU and has nothing to do with Data Memory."
+      },
+      {
+        "text": "The register file write is disabled",
+        "explanation": "Incorrect. Write-back is controlled by RegWrite, not the ALU Zero flag."
+      }
+    ],
+    "correctIdx": 0
+  },
+  {
+    "id": 5,
+    "prompt": "Which unit converts a 16-bit immediate field from an instruction into a 32-bit value?",
+    "options": [
+      {
+        "text": "ALU",
+        "explanation": "Incorrect. The ALU performs computations; it does not expand bit widths."
+      },
+      {
+        "text": "Register File",
+        "explanation": "Incorrect. The Register File reads and writes 32-bit register values."
+      },
+      {
+        "text": "Data Memory",
+        "explanation": "Incorrect. Data Memory reads and writes memory values."
+      },
+      {
+        "text": "Sign Extend",
+        "explanation": "Correct! The Sign Extend unit takes the 16-bit immediate field and extends it to 32 bits by replicating the sign bit, preserving the two's complement value."
+      }
+    ],
+    "correctIdx": 3
   }
 ]
