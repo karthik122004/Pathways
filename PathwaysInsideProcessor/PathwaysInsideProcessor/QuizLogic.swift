@@ -1,16 +1,21 @@
-// This is laying out all of the functions and structs that we could need to display quiz
-// This is just for backend processing right now
-// UI integration is yet to happen (Update this msg when it does)
+// QuizLogic.swift
+// PathwaysInsideProcessor
+//
+// Backend data models and logic for the quiz system.
+// Handles MCQ questions and datapath puzzle questions.
 
-import foundation
+import Foundation
+import Combine
 
-// represents mcq answer choices: the answer choice itself & the explanation for it
+// MARK: - MCQ Models
+
+/// One answer choice in a multiple-choice question
 struct MCQAnswerOption: Codable {
     let text: String
     let explanation: String
 }
 
-// MCQs are easier to design so they are up here first
+/// A multiple-choice question
 struct MCQ: Codable {
     let id: Int
     let prompt: String
@@ -18,31 +23,15 @@ struct MCQ: Codable {
     let correctIdx: Int
 }
 
-// this takes in mcq.json to load in all the mcq for the quiz
-// i put the mcqs in the json for organization
-func loadMCQs(from filename: String) -> [MCQ] {
-    do {
-        let url = URL(fileURLWithPath: filename)
-        let data = try Data(contentsOf: url)
-        let decoded = try JSONDecoder().decode([MCQ].self, from: data)
-        return decoded
-    } catch {
-        print("Error loading questions: \(error)")
-        return []
-    }
+// MARK: - Datapath Puzzle Models
+
+/// An input or output port on a processor component
+struct Port: Codable {
+    let id: String
+    let type: String
 }
 
-// all the mcqs are loaded in to be used
-let allMCQs = loadMCQs(from: "mcqs.json")
-print("Loaded \(allMCQs.count) questions")
-
-// used on UI SIDE to check user inputs
-func checkMCQ(mcq: MCQ, selectedIdx: Int) -> Bool {
-    return selectedIdx == mcq.correctIdx
-}
-
-// DATAPATH PUZZLES are quite a bit more involved
-// represents processor components: ALU, Register File, Data Memory, Sign Extend, Control Unit
+/// A processor component (ALU, Register File, Data Memory, etc.)
 struct Component: Codable {
     let id: String
     let name: String
@@ -50,13 +39,7 @@ struct Component: Codable {
     let outputs: [Port]
 }
 
-// represents inputs and output ports of components
-struct Port: Codable{
-    let id: String
-    let type: String
-}
-
-// represents the wires between components, also control signals
+/// A wire connection between two component ports
 struct Connection: Codable, Hashable {
     let fromComponent: String
     let fromPort: String
@@ -64,104 +47,133 @@ struct Connection: Codable, Hashable {
     let toPort: String
 }
 
-// represents puzzle questions where we provide components and the tester has to draw the wires
-struct Puzzle: Codable{
+/// A datapath puzzle for one instruction type
+struct Puzzle: Codable {
+    let id: String
+    let instructionType: String
+    let description: String
+    let hint: String
     let components: [Component]
     let correctConnections: [Connection]
 }
 
-// loads puzzle questions from json
-func loadPuzzles(from filename: String) -> [Puzzle] {
+// MARK: - Loading Helpers
+
+/// Loads MCQ questions from questions.json in the app bundle
+func loadMCQs() -> [MCQ] {
+    guard let url = Bundle.main.url(forResource: "questions", withExtension: "json") else {
+        print("Could not find questions.json in bundle")
+        return []
+    }
     do {
-        let url = URL(fileURLWithPath: filename)
         let data = try Data(contentsOf: url)
-        let decoded = try JSONDecoder().decode([Puzzle].self, from: data)
-        return decoded
+        return try JSONDecoder().decode([MCQ].self, from: data)
     } catch {
-        print("Error loading questions: \(error)")
+        print("Error loading MCQs: \(error)")
         return []
     }
 }
-let allPuzzles = loadPuzzles(from: "puzzles.json")
 
-// used on UI SIDE to check user inputs
+/// Loads puzzle questions from puzzles.json in the app bundle
+func loadPuzzles() -> [Puzzle] {
+    guard let url = Bundle.main.url(forResource: "puzzles", withExtension: "json") else {
+        print("Could not find puzzles.json in bundle")
+        return []
+    }
+    do {
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder().decode([Puzzle].self, from: data)
+    } catch {
+        print("Error loading puzzles: \(error)")
+        return []
+    }
+}
+
+let allMCQs: [MCQ] = loadMCQs()
+let allPuzzles: [Puzzle] = loadPuzzles()
+
+// MARK: - Answer Checking
+
+/// Returns true if the selected index matches the correct answer
+func checkMCQ(mcq: MCQ, selectedIdx: Int) -> Bool {
+    return selectedIdx == mcq.correctIdx
+}
+
+/// Returns true if the user's connections match the correct solution exactly
 func checkPuzzle(userConnections: [Connection], puzzle: Puzzle) -> Bool {
     return Set(userConnections) == Set(puzzle.correctConnections)
 }
 
-// we have the quiz components, now we have to organize them to be options on the quiz
+// MARK: - Quiz Assembly
+
+/// A quiz item is either an MCQ or a datapath puzzle
 enum QuizItem {
     case mcq(MCQ)
     case puzzle(Puzzle)
 }
 
-// this represents the actual quiz composed of quiz items
+/// A quiz is an ordered list of quiz items
 struct Quiz {
     let items: [QuizItem]
 }
 
-// this builds the quiz to be used
+/// Builds a randomised quiz of the given length from the available question pools
 func generateQuiz(mcqs: [MCQ], puzzles: [Puzzle], totalItems: Int) -> Quiz {
-    let mixedPool: [QuizItem] = 
-        mcqs.map { .mcq($0) } + 
-        puzzles.map { .puzzle($0) }
-    
-    let selected = Array(mixedPool.shuffled().prefix(totalItems))
-
+    let pool: [QuizItem] = mcqs.map { .mcq($0) } + puzzles.map { .puzzle($0) }
+    let selected = Array(pool.shuffled().prefix(totalItems))
     return Quiz(items: selected)
 }
 
-// ObservableObject makes quizManager seeable across diff SwiftUIs; should be useful if we do multiple screens to display quiz questions
-// @Published makes the property automatically update related SwiftUI views
+// MARK: - Quiz Manager
+
+/// Manages quiz state and navigation across all SwiftUI views
+@MainActor
 class QuizManager: ObservableObject {
     @Published var quiz: Quiz
     @Published var currentIdx: Int = 0
 
-    // store quizAnswers to enable navigation across questions
-    // mcqAnswers stores questionIdx -> selectedIdx
+    /// MCQ answers: questionIndex -> selectedOptionIndex
     @Published var mcqAnswers: [Int: Int] = [:]
+    /// Puzzle answers: questionIndex -> user-drawn connections
     @Published var puzzleAnswers: [Int: [Connection]] = [:]
-    
+
     init(quiz: Quiz) {
         self.quiz = quiz
     }
 
-    // Current Item
-    
+    // MARK: Current Item
+
     var currentItem: QuizItem? {
-        // guard is a control statement in swift that is meant to exit fast
         guard currentIdx >= 0 && currentIdx < quiz.items.count else { return nil }
         return quiz.items[currentIdx]
     }
 
-    var isFinished: Bool {
-        return currentIdx == quiz.items.count - 1
-    }
+    var isFinished: Bool { currentIdx == quiz.items.count - 1 }
+    var totalQuestions: Int { quiz.items.count }
 
-    var totalQuestions: Int {
-        return quiz.items.count
-    }
-
-    // Navigation
+    // MARK: Navigation
 
     func goNext() {
         guard currentIdx < quiz.items.count - 1 else { return }
         currentIdx += 1
     }
-    
+
     func goBack() {
         guard currentIdx > 0 else { return }
         currentIdx -= 1
     }
+
     func goTo(index: Int) {
         guard index >= 0 && index < quiz.items.count else { return }
         currentIdx = index
     }
 
-    // Answer Submission
+    // MARK: Answer Submission
+
     func submitMCQAnswer(selectedIdx: Int) {
-        // guard case is specifically for enums
         guard case .mcq = currentItem else { return }
+        // Answers lock after the first submission
+        guard mcqAnswers[currentIdx] == nil else { return }
         mcqAnswers[currentIdx] = selectedIdx
     }
 
@@ -170,40 +182,33 @@ class QuizManager: ObservableObject {
         puzzleAnswers[currentIdx] = connections
     }
 
-    //Answer Retrieval
-    func getMCQAnswer(for index: Int) -> Int? {
-        return mcqAnswers[index]
-    }
+    // MARK: Answer Retrieval
 
-    func getPuzzleAnswer(for index: Int) -> [Connection]? {
-        return puzzleAnswers[index]
-    }
+    func getMCQAnswer(for index: Int) -> Int? { mcqAnswers[index] }
+    func getPuzzleAnswer(for index: Int) -> [Connection]? { puzzleAnswers[index] }
 
-    // Checking Answers
+    // MARK: Scoring
+
     func isCorrect(at index: Int) -> Bool {
         guard index >= 0 && index < quiz.items.count else { return false }
-
-        let item = quiz.items[index]
-
-        switch item {
-            case .mcq(let mcq):
-                guard let selected = mcqAnswers[index] else { return false }
-                return selected == mcq.correctIdx
-            case .puzzle(let puzzle):
-                guard let userConnections = puzzleAnswers[index] else { return false }
-                return Set(userConnections) == Set(puzzle.correctConnections)
+        switch quiz.items[index] {
+        case .mcq(let mcq):
+            guard let selected = mcqAnswers[index] else { return false }
+            return selected == mcq.correctIdx
+        case .puzzle(let puzzle):
+            guard let userConns = puzzleAnswers[index] else { return false }
+            // Exact match: user must draw ALL correct connections and NO wrong ones.
+            // Drawing extra distractor connections counts as incorrect.
+            let correct = correctConnections(for: puzzle.id)
+            let required: Set<Connection> = correct.isEmpty
+                ? Set(puzzle.correctConnections)   // fallback to JSON
+                : correct
+            return Set(userConns) == required
         }
     }
 
-    // Scoring
     var score: Int {
-        var total = 0
-            for i in 0..<quiz.items.count {
-                if isCorrect(at: i) {
-                    total += 1
-                }
-            }
-        return total
+        (0..<quiz.items.count).filter { isCorrect(at: $0) }.count
     }
 
     var progress: Double {

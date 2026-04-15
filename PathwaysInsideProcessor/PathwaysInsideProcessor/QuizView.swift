@@ -1,35 +1,60 @@
-// this is the screen that shows when the user clicks on quiz from the home screen
-// from here the user can choose between different quiz types based on how long the quiz is
+// QuizView.swift
+// PathwaysInsideProcessor
+//
+// Entry screen for the quiz — lets the user choose quiz length.
+// Navigates full-screen via NavigationLink (no sheet).
+
+import SwiftUI
 
 struct QuizSelectionView: View {
-  @State private var selectedCount: Int?
-  @State private var showConfirmation = false
+    let availableCounts = [10, 20, 30]
 
-  // these are the options for quiz length that the user can pick
-  let availableCounts = [10, 20, 30]
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Choose a Quiz Length")
+                .font(.title2.bold())
+                .padding(.top, 24)
 
-  var body: some View {
-    NavigationView {
-      VStack {
-        Text("Choose a Quiz Length")
-          .font(.title)
+            Text("Each quiz draws from both multiple-choice and datapath puzzle question pools.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
 
-        ForEach(availableCounts, id: \.self) { 
-          count in Button("Start \(count)-Question Quiz") {
-            selectedCount = count
-            showConfirmation = true
-          }
-          .padding()
-          .background(Color.blue.opacity(0.2))
-          .cornerRadius(8)
+            ForEach(availableCounts, id: \.self) { count in
+                NavigationLink(destination: QuizConfirmationView(count: count)) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.green.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "checklist")
+                                .foregroundColor(.green)
+                                .font(.system(size: 20))
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(count)-Question Quiz")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text("MCQ + Datapath puzzle mix")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
         }
-      }
-      .navigationTitle("Quiz Selection")
-      .sheet(isPresented: $showConfirmation) {
-        if let count = selectedCount {
-          QuizConfirmationView(count: count)
-        }
-      }
+        .padding(.horizontal, 24)
+        .navigationTitle("Quiz")
     }
-  }
 }
