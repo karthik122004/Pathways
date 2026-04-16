@@ -1,11 +1,240 @@
 [
   {
+    "id": "rtype",
+    "instructionType": "R-Type Instruction",
+    "description": "R-Type instructions (add, sub, and, or, slt) read two source registers, feed them through the ALU, and write the result back to a destination register.",
+    "hint": "Both register outputs pass through the ALU Mux into the ALU. The result returns through the WB Mux to the Register File.",
     "components": [
       {
+        "id": "registers",
+        "name": "Registers",
+        "inputs": [
+          { "id": "registers.wd", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "registers.rd1", "type": "data" },
+          { "id": "registers.rd2", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu_mux",
+        "name": "ALU Mux",
+        "inputs": [
+          { "id": "alu_mux.in0", "type": "data" },
+          { "id": "alu_mux.in1", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu_mux.out", "type": "data" }
+        ]
+      },
+      {
         "id": "alu",
-        "name": "ALU"
+        "name": "ALU",
+        "inputs": [
+          { "id": "alu.a", "type": "data" },
+          { "id": "alu.b", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu.result", "type": "data" }
+        ]
+      },
+      {
+        "id": "wb_mux",
+        "name": "WB Mux",
+        "inputs": [
+          { "id": "wb_mux.in0", "type": "data" },
+          { "id": "wb_mux.in1", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "wb_mux.out", "type": "data" }
+        ]
       }
     ],
-    "correctConnections": []
+    "correctConnections": [
+      { "fromComponent": "registers", "fromPort": "registers.rd1", "toComponent": "alu",    "toPort": "alu.a"         },
+      { "fromComponent": "registers", "fromPort": "registers.rd2", "toComponent": "alu_mux","toPort": "alu_mux.in0"   },
+      { "fromComponent": "alu_mux",   "fromPort": "alu_mux.out",   "toComponent": "alu",    "toPort": "alu.b"         },
+      { "fromComponent": "alu",       "fromPort": "alu.result",     "toComponent": "wb_mux", "toPort": "wb_mux.in0"    },
+      { "fromComponent": "wb_mux",    "fromPort": "wb_mux.out",     "toComponent": "registers","toPort": "registers.wd"}
+    ]
+  },
+  {
+    "id": "load",
+    "instructionType": "Load Word (lw)",
+    "description": "The load word instruction computes a memory address (base register + sign-extended offset), reads a value from Data Memory at that address, and writes it back to a destination register.",
+    "hint": "The base register feeds ALU input A. The sign-extended offset goes through the ALU Mux to ALU input B. The ALU result is the memory address. Memory data returns through the WB Mux.",
+    "components": [
+      {
+        "id": "registers",
+        "name": "Registers",
+        "inputs": [
+          { "id": "registers.wd", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "registers.rd1", "type": "data" },
+          { "id": "registers.rd2", "type": "data" }
+        ]
+      },
+      {
+        "id": "sign_extend",
+        "name": "Sign Extend",
+        "inputs": [
+          { "id": "sign_extend.in", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "sign_extend.out", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu_mux",
+        "name": "ALU Mux",
+        "inputs": [
+          { "id": "alu_mux.in0", "type": "data" },
+          { "id": "alu_mux.in1", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu_mux.out", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu",
+        "name": "ALU",
+        "inputs": [
+          { "id": "alu.a", "type": "data" },
+          { "id": "alu.b", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu.result", "type": "data" }
+        ]
+      },
+      {
+        "id": "data_memory",
+        "name": "Data Memory",
+        "inputs": [
+          { "id": "data_memory.addr",  "type": "data" },
+          { "id": "data_memory.wdata", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "data_memory.rdata", "type": "data" }
+        ]
+      },
+      {
+        "id": "wb_mux",
+        "name": "WB Mux",
+        "inputs": [
+          { "id": "wb_mux.in0", "type": "data" },
+          { "id": "wb_mux.in1", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "wb_mux.out", "type": "data" }
+        ]
+      }
+    ],
+    "correctConnections": [
+      { "fromComponent": "registers",    "fromPort": "registers.rd1",      "toComponent": "alu",         "toPort": "alu.a"           },
+      { "fromComponent": "sign_extend",  "fromPort": "sign_extend.out",    "toComponent": "alu_mux",     "toPort": "alu_mux.in1"     },
+      { "fromComponent": "alu_mux",      "fromPort": "alu_mux.out",        "toComponent": "alu",         "toPort": "alu.b"           },
+      { "fromComponent": "alu",          "fromPort": "alu.result",         "toComponent": "data_memory", "toPort": "data_memory.addr"},
+      { "fromComponent": "data_memory",  "fromPort": "data_memory.rdata",  "toComponent": "wb_mux",      "toPort": "wb_mux.in1"      },
+      { "fromComponent": "wb_mux",       "fromPort": "wb_mux.out",         "toComponent": "registers",   "toPort": "registers.wd"    }
+    ]
+  },
+  {
+    "id": "store",
+    "instructionType": "Store Word (sw)",
+    "description": "The store word instruction computes a memory address (base register + sign-extended offset) and writes the value of a second register to that address. No register write-back occurs.",
+    "hint": "The base register feeds ALU input A. The offset goes through the ALU Mux to compute the address. The second register's data goes straight to Data Memory as write data.",
+    "components": [
+      {
+        "id": "registers",
+        "name": "Registers",
+        "inputs": [],
+        "outputs": [
+          { "id": "registers.rd1", "type": "data" },
+          { "id": "registers.rd2", "type": "data" }
+        ]
+      },
+      {
+        "id": "sign_extend",
+        "name": "Sign Extend",
+        "inputs": [
+          { "id": "sign_extend.in", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "sign_extend.out", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu_mux",
+        "name": "ALU Mux",
+        "inputs": [
+          { "id": "alu_mux.in0", "type": "data" },
+          { "id": "alu_mux.in1", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu_mux.out", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu",
+        "name": "ALU",
+        "inputs": [
+          { "id": "alu.a", "type": "data" },
+          { "id": "alu.b", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu.result", "type": "data" }
+        ]
+      },
+      {
+        "id": "data_memory",
+        "name": "Data Memory",
+        "inputs": [
+          { "id": "data_memory.addr",  "type": "data" },
+          { "id": "data_memory.wdata", "type": "data" }
+        ],
+        "outputs": []
+      }
+    ],
+    "correctConnections": [
+      { "fromComponent": "registers",   "fromPort": "registers.rd1",    "toComponent": "alu",         "toPort": "alu.a"            },
+      { "fromComponent": "registers",   "fromPort": "registers.rd2",    "toComponent": "data_memory", "toPort": "data_memory.wdata"},
+      { "fromComponent": "sign_extend", "fromPort": "sign_extend.out",  "toComponent": "alu_mux",     "toPort": "alu_mux.in1"      },
+      { "fromComponent": "alu_mux",     "fromPort": "alu_mux.out",      "toComponent": "alu",         "toPort": "alu.b"            },
+      { "fromComponent": "alu",         "fromPort": "alu.result",       "toComponent": "data_memory", "toPort": "data_memory.addr" }
+    ]
+  },
+  {
+    "id": "branch",
+    "instructionType": "Branch Equal (beq)",
+    "description": "The branch-if-equal instruction reads two registers and uses the ALU to subtract them. If the result is zero (the Zero flag), the branch is taken. There is no register or memory write-back.",
+    "hint": "Both register outputs connect directly to the ALU inputs. No ALU Mux is needed. The ALU Zero output would drive the branch decision.",
+    "components": [
+      {
+        "id": "registers",
+        "name": "Registers",
+        "inputs": [],
+        "outputs": [
+          { "id": "registers.rd1", "type": "data" },
+          { "id": "registers.rd2", "type": "data" }
+        ]
+      },
+      {
+        "id": "alu",
+        "name": "ALU",
+        "inputs": [
+          { "id": "alu.a", "type": "data" },
+          { "id": "alu.b", "type": "data" }
+        ],
+        "outputs": [
+          { "id": "alu.result", "type": "data" },
+          { "id": "alu.zero",   "type": "control" }
+        ]
+      }
+    ],
+    "correctConnections": [
+      { "fromComponent": "registers", "fromPort": "registers.rd1", "toComponent": "alu", "toPort": "alu.a" },
+      { "fromComponent": "registers", "fromPort": "registers.rd2", "toComponent": "alu", "toPort": "alu.b" }
+    ]
   }
 ]
