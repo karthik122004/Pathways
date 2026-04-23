@@ -10,6 +10,8 @@ import SwiftUI
 
 // MARK: - Native canvas dimensions (from SVG viewBox)
 
+// Matches the SVG viewBox exactly so every x/y coordinate taken from the file
+// can be used as-is without any manual conversion step.
 let svgNativeWidth:  CGFloat = 1317
 let svgNativeHeight: CGFloat = 737
 
@@ -44,6 +46,8 @@ struct MIPSComponent: Identifiable {
     let h:     CGFloat
     let color: ComponentColor
 
+    // Derived geometry — computed from the raw SVG values so call sites
+    // don't need to re-derive center/edge positions themselves.
     var cx: CGFloat { svgX + w / 2 }
     var cy: CGFloat { svgY + h / 2 }
     var left:   CGFloat { svgX }
@@ -89,6 +93,8 @@ struct MIPSWire: Identifiable {
     let from:      String   // port id
     let to:        String   // port id
     let pts:       [CGPoint]
+    // Control wires (RegWrite, ALUSrc, Branch, etc.) are pre-drawn in grey/orange
+    // and are never puzzle targets — the student only wires data paths.
     var isControl: Bool = false
 }
 
@@ -214,6 +220,8 @@ let allPorts: [MIPSPort] = [
 
 // MARK: - Fast lookups
 
+// Pre-built at launch so drag-gesture hot paths get O(1) port/component access
+// instead of O(n) linear searches through allPorts / allComponents.
 let portById: [String: MIPSPort] = Dictionary(uniqueKeysWithValues: allPorts.map { ($0.id, $0) })
 let compById: [String: MIPSComponent] = Dictionary(uniqueKeysWithValues: allComponents.map { ($0.id, $0) })
 
@@ -428,6 +436,10 @@ let wireById: [String: MIPSWire] = Dictionary(uniqueKeysWithValues: allWires.map
 
 // MARK: - Active Wire Sets (per instruction type — data wires only)
 
+// Defines WHICH data wires are "live" for each instruction. Used in two places:
+//  1. Canvas rendering — live wires' ports are shown as draggable dots.
+//  2. Scoring — the puzzle is correct only when the user has drawn exactly this set.
+// Control wires are always drawn and never appear here.
 let activeWireIds: [String: Set<String>] = [
 
     // R-Type: add / sub / and / or / slt
@@ -510,11 +522,13 @@ extension CGPoint {
 
 // MARK: - Scale helpers
 
+// Converts a single SVG-space point to screen space for a given canvas size.
 func scalePoint(_ pt: CGPoint, to size: CGSize) -> CGPoint {
     CGPoint(x: pt.x * size.width  / svgNativeWidth,
             y: pt.y * size.height / svgNativeHeight)
 }
 
+// Builds a SwiftUI Path from a wire's SVG waypoints, scaled to the canvas size.
 func wirePath(for wire: MIPSWire, scaledTo size: CGSize) -> Path {
     guard wire.pts.count >= 2 else { return Path() }
     return Path { p in
@@ -523,6 +537,8 @@ func wirePath(for wire: MIPSWire, scaledTo size: CGSize) -> Path {
     }
 }
 
+// Returns a screen-space position map for every port — used when rendering
+// port dots and computing snap distances during drag gestures.
 func buildFullPortPositions(canvasSize: CGSize) -> [String: CGPoint] {
     var map: [String: CGPoint] = [:]
     for port in allPorts {
@@ -535,6 +551,8 @@ func buildFullPortPositions(canvasSize: CGSize) -> [String: CGPoint] {
 
 // MARK: - Puzzle helpers
 
+// Splits the active wire endpoints into output (drag source) and input (drop target)
+// sets so the canvas can render them with distinct visuals.
 func getActivePorts(instrType: String) -> (outputs: Set<String>, inputs: Set<String>) {
     guard let ids = activeWireIds[instrType] else { return ([], []) }
     var out = Set<String>(); var inp = Set<String>()
@@ -544,6 +562,8 @@ func getActivePorts(instrType: String) -> (outputs: Set<String>, inputs: Set<Str
     return (out, inp)
 }
 
+// Returns the component IDs touched by any active wire — used to visually
+// emphasise the relevant datapath components for a given instruction type.
 func activeComponentIds(instrType: String) -> Set<String> {
     guard let ids = activeWireIds[instrType] else { return [] }
     var comps = Set<String>()
@@ -556,6 +576,8 @@ func activeComponentIds(instrType: String) -> Set<String> {
     return comps
 }
 
+// Derives the canonical answer set from the wire definitions, not from a
+// separate hardcoded table, so the two sources of truth can never diverge.
 func correctConnections(for instrType: String) -> Set<Connection> {
     guard let ids = activeWireIds[instrType] else { return [] }
     return Set(ids.compactMap { wid -> Connection? in

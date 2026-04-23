@@ -23,7 +23,8 @@ struct MCQView: View {
                 let isCorrect   = idx == mcq.correctIdx
                 let isAnswered  = answered != nil
 
-                // Determine tint
+                // Border and background tint are invisible before answering,
+                // then immediately reveal correct (green) / wrong (red) feedback.
                 let borderColor: Color = {
                     guard isAnswered else { return .clear }
                     if isCorrect { return .green }
@@ -38,6 +39,8 @@ struct MCQView: View {
                 }()
 
                 Button(action: {
+                    // Guard here acts as a first-pass lock; .disabled(isAnswered) below
+                    // is a second layer that also prevents the tap animation from firing.
                     guard answered == nil else { return }
                     manager.submitMCQAnswer(selectedIdx: idx)
                 }) {
@@ -82,7 +85,9 @@ struct MCQView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .disabled(isAnswered)
+                .disabled(isAnswered)  // prevents tap animation after answer is locked
+                // value: isAnswered means the animation only fires on the single state
+                // transition (unanswered → answered), not on every re-render.
                 .animation(.easeInOut(duration: 0.2), value: isAnswered)
 
                 // Explanation — shown for correct answer and user's wrong pick

@@ -89,6 +89,8 @@ func loadPuzzles() -> [Puzzle] {
     }
 }
 
+// Loaded once at app launch into global constants so every QuizManager shares
+// the same question pool without re-reading the bundle on each quiz start.
 let allMCQs: [MCQ] = loadMCQs()
 let allPuzzles: [Puzzle] = loadPuzzles()
 
@@ -99,7 +101,9 @@ func checkMCQ(mcq: MCQ, selectedIdx: Int) -> Bool {
     return selectedIdx == mcq.correctIdx
 }
 
-/// Returns true if the user's connections match the correct solution exactly
+/// Returns true if the user's connections match the correct solution exactly.
+/// Partial credit is intentionally not given — extra wrong wires count as incorrect
+/// because they indicate a misunderstanding of the datapath, not just a missed connection.
 func checkPuzzle(userConnections: [Connection], puzzle: Puzzle) -> Bool {
     return Set(userConnections) == Set(puzzle.correctConnections)
 }
@@ -117,7 +121,9 @@ struct Quiz {
     let items: [QuizItem]
 }
 
-/// Builds a randomised quiz of the given length from the available question pools
+/// Builds a randomised quiz of the given length from the available question pools.
+/// Shuffling the combined pool before slicing gives a natural mix of MCQ and puzzle
+/// questions rather than front-loading one type.
 func generateQuiz(mcqs: [MCQ], puzzles: [Puzzle], totalItems: Int) -> Quiz {
     let pool: [QuizItem] = mcqs.map { .mcq($0) } + puzzles.map { .puzzle($0) }
     let selected = Array(pool.shuffled().prefix(totalItems))
@@ -126,7 +132,9 @@ func generateQuiz(mcqs: [MCQ], puzzles: [Puzzle], totalItems: Int) -> Quiz {
 
 // MARK: - Quiz Manager
 
-/// Manages quiz state and navigation across all SwiftUI views
+/// Manages quiz state and navigation across all SwiftUI views.
+// @MainActor ensures all @Published mutations happen on the main thread,
+// matching SwiftUI's threading requirements without manual DispatchQueue.main calls.
 @MainActor
 class QuizManager: ObservableObject {
     @Published var quiz: Quiz
@@ -148,6 +156,8 @@ class QuizManager: ObservableObject {
         return quiz.items[currentIdx]
     }
 
+    // "Finished" means the user is on the last question, not past it,
+    // so the Results button becomes available from the final question's screen.
     var isFinished: Bool { currentIdx == quiz.items.count - 1 }
     var totalQuestions: Int { quiz.items.count }
 
@@ -172,7 +182,7 @@ class QuizManager: ObservableObject {
 
     func submitMCQAnswer(selectedIdx: Int) {
         guard case .mcq = currentItem else { return }
-        // Answers lock after the first submission
+        // Once the index is stored it can never be overwritten — enforces one-attempt policy.
         guard mcqAnswers[currentIdx] == nil else { return }
         mcqAnswers[currentIdx] = selectedIdx
     }
@@ -197,11 +207,12 @@ class QuizManager: ObservableObject {
             return selected == mcq.correctIdx
         case .puzzle(let puzzle):
             guard let userConns = puzzleAnswers[index] else { return false }
-            // Exact match: user must draw ALL correct connections and NO wrong ones.
-            // Drawing extra distractor connections counts as incorrect.
+            // Exact match: drawing extra distractor connections counts as wrong.
+            // correctConnections() derives the answer from the SVG wire definitions;
+            // the JSON fallback handles puzzle IDs not yet defined in DatapathLayout.
             let correct = correctConnections(for: puzzle.id)
             let required: Set<Connection> = correct.isEmpty
-                ? Set(puzzle.correctConnections)   // fallback to JSON
+                ? Set(puzzle.correctConnections)
                 : correct
             return Set(userConns) == required
         }

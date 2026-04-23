@@ -7,6 +7,8 @@
 import SwiftUI
 
 struct QuizSelectionView: View {
+    // Adding a new quiz length only requires appending to this array —
+    // the ForEach loop below renders however many entries are present.
     let availableCounts = [10, 20, 30]
 
     var body: some View {

@@ -67,9 +67,13 @@ struct StandalonePuzzleView: View {
     @State private var allCorrect       = false
     @State private var showHint         = false
     @State private var isPortrait       = false
+    // Passed down to the canvas; while true the ScrollView is disabled so that
+    // a drag starting on a port isn't stolen by the scroll gesture recogniser.
     @State private var isDrawingWire    = false
     @State private var scrollOffset     = CGPoint.zero
     @State private var committedZoom:   CGFloat = 1.0
+    // @GestureState resets to 1.0 automatically when the pinch ends, so
+    // committedZoom accumulates across multiple pinch gestures correctly.
     @GestureState private var pinchDelta: CGFloat = 1.0
     private var zoom: CGFloat { (committedZoom * pinchDelta).clamped(to: 0.4...3.0) }
 
@@ -104,7 +108,10 @@ struct StandalonePuzzleView: View {
                                         committedZoom = (committedZoom * val).clamped(to: 0.4...3.0)
                                     }
                             )
-                            // Report content position so we can draw scrollbar thumbs
+                            // SwiftUI's ScrollView exposes no built-in scroll offset API.
+                            // Attaching a GeometryReader inside the scroll content and reading
+                            // its frame relative to the named coordinate space is the standard
+                            // workaround to retrieve the current scroll position.
                             .background(GeometryReader { inner in
                                 Color.clear.preference(
                                     key: ScrollOffsetKey.self,
@@ -202,6 +209,8 @@ struct StandalonePuzzleView: View {
     }
 
     private var hintBanner: some View {
+        // Reveals just one missing connection at a time — giving the full list
+        // would bypass the learning intent of the puzzle.
         let missing = correct.subtracting(Set(userConnections))
         let msg = missing.first.map { "Try connecting \($0.fromPort) → \($0.toPort)" }
                   ?? "All connections drawn!"
@@ -357,6 +366,8 @@ private struct SVGDatapathPuzzleCanvas: View {
     @State private var isDragging      = false
 
     private let portDotR:   CGFloat = 9
+    // 36 pt snap radius is large enough to be comfortable on a small device
+    // screen without overlapping adjacent port dots.
     private let snapRadius: CGFloat = 36
 
     // Active port sets for this instruction type
@@ -368,7 +379,8 @@ private struct SVGDatapathPuzzleCanvas: View {
         Set(activeWireSet.compactMap { wireById[$0]?.to })
     }
 
-    // Combined: real ports + distractors (used for rendering dots and snapping)
+    // Merges real ports with distractor ports so both are rendered identically.
+    // The student cannot tell them apart visually — that's the point of distractors.
     private var allVisibleOutputIds: Set<String> { activeOutputIds.union(extraOutputIds) }
     private var allVisibleInputIds:  Set<String> { activeInputIds.union(extraInputIds) }
 
@@ -383,10 +395,13 @@ private struct SVGDatapathPuzzleCanvas: View {
 
             ZStack {
                 // ── 1. Static background (Canvas API) ─────────────────────
+                // Canvas is used instead of individual SwiftUI shapes because
+                // it batches all wire and component draws into a single render
+                // pass — much faster than laying out ~40 separate Path views.
                 Canvas { ctx, sz in
                     drawStaticBackground(ctx: ctx, size: sz)
                 }
-                .allowsHitTesting(false)
+                .allowsHitTesting(false)  // background never needs touch events
 
                 // ── 2. User-drawn connections ──────────────────────────────
                 ForEach(userConnections, id: \.self) { conn in
@@ -410,7 +425,9 @@ private struct SVGDatapathPuzzleCanvas: View {
                 }
 
                 // ── 4. Output port dots (draggable / tappable) ────────────
-                // Distractors use the same orange colour — indistinguishable from real ports.
+                // Colour shifts to red once a wire is drawn from this port.
+                // Tapping a connected output dot removes its wire (no separate delete UI needed).
+                // Distractors use the same orange — indistinguishable from real ports.
                 ForEach(Array(allVisibleOutputIds), id: \.self) { pid in
                     if let p = portById[pid] {
                         let connected = drawnFromPorts.contains(pid)
@@ -427,7 +444,9 @@ private struct SVGDatapathPuzzleCanvas: View {
                 }
 
                 // ── 5. Input port dots (drop targets) ─────────────────────
-                // Distractors use the same white/blue colour — indistinguishable from real ports.
+                // Input dots are not hit-testable: they are pure visual feedback.
+                // The DragGesture below handles snapping to the nearest input port.
+                // Distractors use the same white/blue — indistinguishable from real ports.
                 ForEach(Array(allVisibleInputIds), id: \.self) { pid in
                     if let p = portById[pid] {
                         let connected = drawnToPorts.contains(pid)
@@ -448,17 +467,21 @@ private struct SVGDatapathPuzzleCanvas: View {
                     .onChanged { val in
                         guard !isLocked else { return }
                         if !isDragging {
+                            // On first movement, check whether the drag started
+                            // near an output port. If not, let the scroll view
+                            // handle this gesture instead.
                             if let pid = snapPort(to: val.startLocation,
                                                   ports: allVisibleOutputIds,
                                                   sx: sx, sy: sy) {
                                 dragFromPortId = pid
                                 isDragging     = true
-                                isDrawingWire  = true
+                                isDrawingWire  = true  // disables scroll in parent
                             }
                         }
                         if isDragging { dragLocation = val.location }
                     }
                     .onEnded { val in
+                        // Always clear drag state — even if no connection is made.
                         defer {
                             dragFromPortId = nil
                             isDragging     = false
@@ -468,11 +491,12 @@ private struct SVGDatapathPuzzleCanvas: View {
                         guard let toId = snapPort(to: val.location,
                                                   ports: allVisibleInputIds,
                                                   sx: sx, sy: sy),
-                              toId != fromId else { return }
+                              toId != fromId else { return }  // guard against connecting a port to itself
                         let fp = portById[fromId]!
                         let tp = portById[toId]!
                         let conn = Connection(fromComponent: fp.compId, fromPort: fromId,
                                              toComponent:   tp.compId, toPort:   toId)
+                        // Prevent duplicate connections from the same output port.
                         if !userConnections.contains(conn) {
                             userConnections.append(conn)
                         }
@@ -487,12 +511,13 @@ private struct SVGDatapathPuzzleCanvas: View {
         let sx = size.width  / svgNativeWidth
         let sy = size.height / svgNativeHeight
 
-        // Draw wires first (below components)
+        // Wires drawn first so component rectangles paint on top of them.
         for wire in allWires {
             guard wire.pts.count >= 2 else { continue }
             var path = Path()
             path.move(to: scaledPt(wire.pts[0], sx, sy))
             for pt in wire.pts.dropFirst() { path.addLine(to: scaledPt(pt, sx, sy)) }
+            // Control wires are rendered at lower opacity so data wires stand out.
             let col = wire.isControl
                 ? Color.orange.opacity(0.30)
                 : Color.black.opacity(0.35)
@@ -500,14 +525,15 @@ private struct SVGDatapathPuzzleCanvas: View {
                        style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
         }
 
-        // Draw component rectangles
+        // Component rectangles and their labels
         for comp in allComponents {
             let rect = CGRect(x: comp.svgX * sx, y: comp.svgY * sy,
                               width: comp.w * sx, height: comp.h * sy)
             ctx.fill(Path(rect), with: .color(comp.fillColor))
             ctx.stroke(Path(rect), with: .color(comp.strokeColor), lineWidth: 1.2)
 
-            // Multi-line label — clamp between 9 pt (tiny boxes) and 13 pt (large boxes)
+            // Font size scales with the component box height; clamped so tiny
+            // boxes (e.g. PC) stay readable and large boxes don't look oversized.
             let fontSize = max(9, min(13, comp.h * sy * 0.22))
             let font = Font.system(size: fontSize, weight: .semibold)
             let lines = comp.label.split(separator: "\n", omittingEmptySubsequences: true)
@@ -529,13 +555,13 @@ private struct SVGDatapathPuzzleCanvas: View {
         guard let fp = portById[conn.fromPort], let tp = portById[conn.toPort] else {
             return Path()
         }
-        // Use the exact SVG path when one exists (correct connections and any
-        // distractor pair that happens to share a defined wire).
+        // Prefer the exact SVG waypoint path so the user-drawn wire overlays the
+        // background wire precisely. Falls back to a straight line for distractor
+        // connections that have no matching SVG wire definition.
         if let wire = wireById.values.first(where: {
             $0.from == conn.fromPort && $0.to == conn.toPort }) {
             return wirePath(for: wire, scaledTo: size)
         }
-        // Fallback for distractor connections with no SVG path.
         return Path { p in
             p.move(to: CGPoint(x: fp.px * sx, y: fp.py * sy))
             p.addLine(to: CGPoint(x: tp.px * sx, y: tp.py * sy))
@@ -543,12 +569,16 @@ private struct SVGDatapathPuzzleCanvas: View {
     }
 
     private func userWireColor(_ conn: Connection) -> Color {
+        // After "Check" the result dict is populated; before it, wires are blue.
         if let checked = checkedResult[conn] { return checked ? .green : .red }
         return .blue
     }
 
     // MARK: - Snap helper
 
+    // Returns the nearest port within snapRadius, or nil if none qualifies.
+    // Using hypot (Euclidean distance) rather than a bounding-box check avoids
+    // accidentally snapping to ports that are close on one axis but far on the other.
     private func snapPort(to pt: CGPoint, ports: Set<String>,
                           sx: CGFloat, sy: CGFloat) -> String? {
         var best: (id: String, dist: CGFloat) = ("", .infinity)
@@ -574,10 +604,12 @@ struct PuzzleView: View {
     @State private var userConnections:  [Connection]       = []
     @State private var checkedResult:    [Connection: Bool] = [:]
     @State private var showResult        = false
-    @State private var isLocked          = false   // true after Submit — no more changes
+    // Once Submit is tapped the canvas is locked — no rewiring or second attempts.
+    @State private var isLocked          = false
     @State private var isDrawingWire     = false
     @State private var committedZoom:    CGFloat = 1.0
     @GestureState private var pinchDelta: CGFloat = 1.0
+    // Distractor ports injected at appear-time; absent in standalone puzzle mode.
     @State private var extraOutputIds:   Set<String> = []
     @State private var extraInputIds:    Set<String> = []
 
@@ -645,6 +677,8 @@ struct PuzzleView: View {
             }
 
             // One-try only: Submit locks immediately, no Reset or re-check.
+            // The manager stores connections live (onChange below) so the results
+            // screen always has the most recent state even if Submit wasn't tapped.
             Divider()
             Button {
                 checkedResult = Dictionary(uniqueKeysWithValues:
@@ -662,6 +696,7 @@ struct PuzzleView: View {
             .padding()
         }
         .onAppear { generateDistractors() }
+        // Persist every intermediate state so navigating away and back preserves work.
         .onChange(of: userConnections) { _, newVal in manager.submitPuzzleAnswer(connections: newVal) }
     }
 

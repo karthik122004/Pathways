@@ -7,10 +7,14 @@ import SwiftUI
 
 struct HomeView: View {
     var body: some View {
+        // NavigationStack is declared here once so every pushed view automatically
+        // inherits the nav bar. Declaring it deeper (inside each feature) would
+        // require each screen to manage its own stack.
         NavigationStack {
             VStack(spacing: 32) {
                 Spacer()
 
+                // App identity header
                 VStack(spacing: 8) {
                     Image(systemName: "cpu")
                         .font(.system(size: 64))
@@ -22,6 +26,8 @@ struct HomeView: View {
                         .foregroundColor(.secondary)
                 }
 
+                // Feature entry points — each NavigationLink pushes its destination
+                // onto the shared NavigationStack declared above.
                 VStack(spacing: 16) {
                     NavigationLink(destination: PuzzleSelectionView()) {
                         HomeButton(title: "Datapath Puzzle",
@@ -49,6 +55,8 @@ struct HomeView: View {
 
 // MARK: - Reusable Home Button
 
+// Extracted as a private struct so HomeView's body stays readable
+// and additional home buttons can be added without duplicating layout.
 private struct HomeButton: View {
     let title: String
     let subtitle: String
@@ -72,6 +80,7 @@ private struct HomeButton: View {
             }
 
             Spacer()
+            // Chevron signals to the user that this row navigates somewhere.
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
                 .foregroundColor(.secondary)

@@ -34,6 +34,9 @@ struct QuizConfirmationView: View {
             }
             .padding(.horizontal)
 
+            // Quiz and manager are created inside the NavigationLink destination
+            // closure so they are lazily initialised only when Start is tapped,
+            // not when this confirmation screen first appears.
             NavigationLink {
                 let quiz = generateQuiz(mcqs: allMCQs, puzzles: allPuzzles, totalItems: count)
                 let manager = QuizManager(quiz: quiz)
