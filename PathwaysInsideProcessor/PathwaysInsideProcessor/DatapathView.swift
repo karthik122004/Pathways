@@ -19,13 +19,13 @@ struct DatapathView: View {
   struct DatapathExplanation: Identifiable {
     let id = UUID()
     let text: String
-    let position: CGPoint
+    let componentId: String
   }
 
-  @State private var seelctedINsturction : InstructionType? = nil
-  @State private var scale = CGFLoat = 1.0
+  @State private var selectedInstruction : InstructionType? = nil
+  @State private var scale: CGFloat = 1.0
   @State private var offset: CGSize = .zero
-  @State private var showExplanation: Bool = false
+  @State private var selectedComponent: String? = nil
 
   var body: some View {
     GeometryReader { geo in
@@ -66,7 +66,7 @@ struct DatapathView: View {
       ForEach(InstructionType.allCases, id: \.self) { type in
         Button(action: {
           selectedInstruction = type
-          showExplanations = false
+          selectedComponent = nil
           withAnimation {
             scale = 1.2
             offset = .zero
@@ -87,77 +87,107 @@ struct DatapathView: View {
   var zoomableDiagram: some View {
     ZStack {
       Image("datapath_full")
-        .resizeable()
-        .sacledToFit()
+        .resizable()
+        .scaledToFit()
         .opacity(0.3)
 
-        // highlights overlay per instruction
+        // Dynamic component highlighting + click
         if let instruction = selectedInstruction {
-          Image(imageName(for: instruction))
-            .resiable()
-            .scaledToFit()
-            .transition(.opacity)
+            GeometryReader { geo in
+                let active = activeComponentIds(instrType: instructionKey(instruction))
+                ForEach(allComponents) { comp in
+                    let isActive = active.contains(comp.id)
+                    let center = scalePoint(
+                        CGPoint(x: comp.cx, y: comp.cy),
+                        to: geo.size
+                    )
+                    Button {
+                        if isActive {
+                            selectedComponent = comp.id
+                        }
+                    } label: {
+                        Rectangle()
+                            .fill(isActive ? Color.yellow.opacity(0.4) : Color.clear)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                              if isActive {
+                                selectedComponent = comp.id
+                              }
+                            }
+                            .overlay(
+                              Rectangle()
+                                .stroke(
+                                  selectedComponent == comp.id ? Color.orange : Color.clear,
+                                  lineWidth: 3
+                                )
+                            )
+                    }
+                    .frame(
+                        width: comp.w * geo.size.width / svgNativeWidth,
+                        height: comp.h * geo.size.height / svgNativeHeight
+                    )
+                    .position(center)
+                }
+            }
         }
 
-        // explanation bubbles overlay
-        if let instruction = selectedInstruction, showExplanations {
-          GeometryReader { geo in 
-            ForEach(Array(explanations(for: instruction).enumerated()), id: \ .element.id) {index, item in 
-              ExplanationBubble(text: item.text)
-                .position(
-                  x: item.position.x * geo.size.width,
-                  y: item.poistion.y * geo.size.height
-                )
-                .transition(.scale.combined(with: .opacity))
-                .animation(.easeIn.delay(Double(index) * 0.15), value: showExplanations)
+        // Show explanation bubble ONLY for selected component
+        if let instruction = selectedInstruction,
+           let selectedComponent = selectedComponent {
+
+            GeometryReader { geo in
+                let items = explanations(for: instruction)
+                  .filter { $0.componentId == selectedComponent }
+              
+                if let comp = compById[selectedComponent], !items.isEmpty {
+
+                    let point = scalePoint(
+                        CGPoint(x: comp.cx, y: comp.cy),
+                        to: geo.size
+                    )
+
+                    let yOffset: CGFloat = comp.cy < svgNativeHeight / 2 ? -60 : 60
+                     
+                    ExplanationBubble(text: item.text)
+                        .position(x: point.x, y: point.y + yOffset)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
-          }
         }
-      }
-      .scaleEffect(scale)
-      .offset(offset)
-      .gesture(
+    }
+    .scaleEffect(scale)
+    .offset(offset)
+    .gesture(
         MagnificationGesture()
-          .onChanged { value in
-            scale = value      
-          }
-      }
-      .gesture(
+            .onChanged { value in
+                scale = value
+            }
+    )
+    .gesture(
         DragGesture()
-          .onChanged { value in 
-            offset = value.translation
-          }
-      )
-      .onTapGesture(count: 2) {
+            .onChanged { value in
+                offset = value.translation
+            }
+    )
+    .onTapGesture(count: 2) {
         withAnimation {
-          scale.1.0
-          offset = .zero
+            scale = 1.0
+            offset = .zero
         }
-      }
-      .padding()
-  }
+    }
+    .padding()
+}
 
   // this is the explore button
   // the point of this page as a whole is for users to visually see the instruction on the datapath as a whole
   // the explore button is meant to allow users to dig into specific instruction types and learn about their specifics. 
 
-  var controlsBar: some View {
+  var exploreButton: some View {
     VStack(spacing: 12) {
       if selectedInstruction != nil {
-        Button(action: {
-          withAnimation {
-            showExplanations.toggle()
-          }
-        }) {
-          Text(showExplanations ? "Hide Explanations" : "Explore")
-            .font(.headline)
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.green)
-            .foregroundColor(.white)
-            .cornerRadius(12)
-        }
-
+        Text("Tap a highlighted component to explore")
+          .font(.subheadline)
+          .foregroundColor(.gray)
         if let instruction = selectedInstruction { 
           NavigationLink(destination: DetailView(instruction: instruction)) {
             Text("Open Detailed Page")
@@ -174,12 +204,12 @@ struct DatapathView: View {
     .padding()
   }
 
-  func imageName(for instruction: InstructionType) -> String {
-    switch instruction {
-    case .load: return "highlight_load"
-    case .store: return "highlight_store"
-    case .alu return "highlight_alu"
-    case .branch return "highlight_branch"
+  func instructionKey(_ type: InstructionType) -> String {
+    switch type {
+      case .load: return "load"
+      case .store: return "store"
+      case .alu: return "rtype"
+      case .branch: return "branch"
     }
   }
 
@@ -187,27 +217,35 @@ struct DatapathView: View {
     switch instruction {
     case .load:
       return [
-          DatapathExplanation(text: "ALU computes the effective memory address (base + offset).", position: CGPoint(x: 0.55, y: 0.55)),
-          DatapathExplanation(text: "Data memory is read using that address.", position: CGPoint(x: 0.75, y: 0.45)),
-          DatapathExplanation(text: "Loaded value is written back into the register file.", position: CGPoint(x: 0.3, y: 0.6))
+          DatapathExplanation(text: "Base register is read from the register file. Loaded value is written back to the register file.", componentId: "registers"),
+          DatapathExplanation(text: "Immediate offset is sign-extended to 32 bits.", componentId: "sign_extend"),
+          DatapathExplanation(text: "ALU adds base register and offset to compute memory address.", componentId: "alu"),
+          DatapathExplanation(text: "Data memory reads the value at the computed address.", componentId: "data_memory"),
+          DatapathExplanation(text: "MUX selects memory output instead of ALU result.", componentId: "wb_mux")
       ]
     case .store:
         return [
-            DatapathExplanation(text: "ALU computes the address where data will be stored.", position: CGPoint(x: 0.55, y: 0.55)),
-            DatapathExplanation(text: "Register file provides the value to write.", position: CGPoint(x: 0.3, y: 0.6)),
-            DatapathExplanation(text: "Data memory writes the value at the computed address.", position: CGPoint(x: 0.75, y: 0.45))
+            DatapathExplanation(text: "Base register provides memory address base. Second register provides the value to store.", componentId: "registers"),
+            DatapathExplanation(text: "Immediate offset is sign-extended.", componentId: "sign_extend"),
+            DatapathExplanation(text: "ALU computes target memory address.", componentId: "alu"),
+            DatapathExplanation(text: "Data memory writes the value to memory.", componentId: "data_memory")
         ]
     case .alu:
         return [
-            DatapathExplanation(text: "Register operands are read from the register file.", position: CGPoint(x: 0.3, y: 0.6)),
-            DatapathExplanation(text: "ALU performs the arithmetic/logic operation.", position: CGPoint(x: 0.55, y: 0.55)),
-            DatapathExplanation(text: "Result is written back to the destination register.", position: CGPoint(x: 0.35, y: 0.45))
+            DatapathExplanation(text: "Two operands are read from the register file. Result is written back into destination register.", componentId: "registers"),
+            DatapathExplanation(text: "Control unit determines ALU operation.", componentId: "alu_control"),
+            DatapathExplanation(text: "ALU performs arithmetic or logical computation.", componentId: "alu"),
+            DatapathExplanation(text: "Result is selected by write-back MUX.", componentId: "wb_mux"),
         ]
     case .branch:
         return [
-            DatapathExplanation(text: "Registers are compared in the ALU (e.g., subtract/zero check).", position: CGPoint(x: 0.55, y: 0.55)),
-            DatapathExplanation(text: "Immediate is used to compute branch target.", position: CGPoint(x: 0.6, y: 0.35)),
-            DatapathExplanation(text: "PC is updated conditionally to the branch target.", position: CGPoint(x: 0.2, y: 0.3))
+            DatapathExplanation(text: "Registers provide values to compare.", componentId: "registers"),
+            DatapathExplanation(text: "ALU subtracts values to check if equal (Zero flag).", componentId: "alu"),
+            DatapathExplanation(text: "Immediate is sign-extended.", componentId: "sign_extend"),
+            DatapathExplanation(text: "Offset is shifted left to form word address.", componentId: "shift_left2"),
+            DatapathExplanation(text: "Branch target address is computed.", componentId: "branch_adder"),
+            DatapathExplanation(text: "Branch decision uses Zero AND Branch signal.", componentId: "and_gate"),
+            DatapathExplanation(text: "MUX selects next PC (branch or sequential).", componentId: "branch_mux")
         ]
     }
   }
@@ -236,7 +274,7 @@ struct DetailView: View {
   var body: some View { 
     ScrollView { 
       VStack(alignment: .leading, spacing:16) {
-        Text("\instruction.rawValue) Datapath")
+        Text("\(instruction.rawValue) Datapath")
           .font(.largeTitle)
           .bold()
 
