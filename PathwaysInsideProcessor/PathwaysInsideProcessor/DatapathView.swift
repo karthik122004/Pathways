@@ -84,23 +84,25 @@ struct DatapathView: View {
     .padding()
   }
 
-  var zoomableDiagram: some View {
+var zoomableDiagram: some View {
     ZStack {
-      Image("datapath_full")
-        .resizable()
-        .scaledToFit()
-        .opacity(0.3)
+        Image("datapath_full")
+            .resizable()
+            .scaledToFit()
+            .opacity(0.3)
 
         // Dynamic component highlighting + click
         if let instruction = selectedInstruction {
             GeometryReader { geo in
                 let active = activeComponentIds(instrType: instructionKey(instruction))
+
                 ForEach(allComponents) { comp in
                     let isActive = active.contains(comp.id)
                     let center = scalePoint(
                         CGPoint(x: comp.cx, y: comp.cy),
                         to: geo.size
                     )
+
                     Button {
                         if isActive {
                             selectedComponent = comp.id
@@ -109,17 +111,12 @@ struct DatapathView: View {
                         Rectangle()
                             .fill(isActive ? Color.yellow.opacity(0.4) : Color.clear)
                             .contentShape(Rectangle())
-                            .onTapGesture {
-                              if isActive {
-                                selectedComponent = comp.id
-                              }
-                            }
                             .overlay(
-                              Rectangle()
-                                .stroke(
-                                  selectedComponent == comp.id ? Color.orange : Color.clear,
-                                  lineWidth: 3
-                                )
+                                Rectangle()
+                                    .stroke(
+                                        selectedComponent == comp.id ? Color.orange : Color.clear,
+                                        lineWidth: 3
+                                    )
                             )
                     }
                     .frame(
@@ -131,23 +128,25 @@ struct DatapathView: View {
             }
         }
 
-        // Show explanation bubble ONLY for selected component
+        // Explanation bubble (FIXED)
         if let instruction = selectedInstruction,
            let selectedComponent = selectedComponent {
 
             GeometryReader { geo in
                 let items = explanations(for: instruction)
-                  .filter { $0.componentId == selectedComponent }
-              
-                if let comp = compById[selectedComponent], !items.isEmpty {
+                    .filter { $0.componentId == selectedComponent }
+
+                if let comp = compById[selectedComponent],
+                   let item = items.first {
 
                     let point = scalePoint(
                         CGPoint(x: comp.cx, y: comp.cy),
                         to: geo.size
                     )
 
-                    let yOffset: CGFloat = comp.cy < svgNativeHeight / 2 ? -60 : 60
-                     
+                    let yOffset: CGFloat =
+                        comp.cy < svgNativeHeight / 2 ? -60 : 60
+
                     ExplanationBubble(text: item.text)
                         .position(x: point.x, y: point.y + yOffset)
                         .transition(.scale.combined(with: .opacity))
