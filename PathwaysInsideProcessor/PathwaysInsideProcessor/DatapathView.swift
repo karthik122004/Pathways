@@ -41,7 +41,7 @@ struct DatapathView: View {
   // Portrait View
   // it isn't ideal for displaying the whole processor datapath
   // but it is the default view that users prefer, so it ought to be supported
-  var portratiLayout: some View {
+  var portraitLayout: some View {
     VStack {
       instructionMenu
       zoomableDiagram
@@ -75,7 +75,7 @@ struct DatapathView: View {
           Text(type.rawValue)
             .frame(maxWidth: .infinity)
             .padding()
-            .background(selectedInstruction == type ? Color.blue :
+            .background(selectedInstruction == type ? Color.blue : Color.gray.opacity(0.3))
             .foregroundColor(.white)
             .cornerRadius(10)
         }
@@ -84,6 +84,21 @@ struct DatapathView: View {
     .padding()
   }
 
+func activeComponentIds(instrType: String) -> Set<String> {
+    switch instrType {
+    case "load":
+        return ["registers", "sign_extend", "alu", "data_memory", "wb_mux"]
+    case "store":
+        return ["registers", "sign_extend", "alu", "data_memory"]
+    case "rtype":
+        return ["registers", "alu_control", "alu", "wb_mux"]
+    case "branch":
+        return ["registers", "alu", "sign_extend", "shift_left2", "branch_adder", "and_gate", "branch_mux"]
+    default:
+        return []
+    }
+}
+  
 var zoomableDiagram: some View {
     ZStack {
         Image("datapath_full")
@@ -156,17 +171,17 @@ var zoomableDiagram: some View {
     }
     .scaleEffect(scale)
     .offset(offset)
-    .gesture(
-        MagnificationGesture()
-            .onChanged { value in
-                scale = value
-            }
+    .simultaneousGesture(
+      MagnificationGesture()
+          .onChanged { value in
+              scale = value
+          }
     )
-    .gesture(
-        DragGesture()
-            .onChanged { value in
-                offset = value.translation
-            }
+    .simultaneousGesture(
+      DragGesture()
+          .onChanged { value in
+              offset = value.translation
+          }
     )
     .onTapGesture(count: 2) {
         withAnimation {
@@ -183,7 +198,7 @@ var zoomableDiagram: some View {
 
   var exploreButton: some View {
     VStack(spacing: 12) {
-      if selectedInstruction != nil {
+      if let instruction = selectedInstruction {
         Text("Tap a highlighted component to explore")
           .font(.subheadline)
           .foregroundColor(.gray)
