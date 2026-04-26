@@ -21,8 +21,8 @@ This document outlines the test plan for evaluating all features of the Pathways
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
 | 1 | App launches without crashing | Home screen displays correctly |PASS | |
-| 2 | All navigation buttons/links are visible | Each button leads to the correct screen | | |
-| 3 | App title and description are displayed | Text is readable and correct | | |
+| 2 | All navigation buttons/links are visible | Each button leads to the correct screen |PASS | |
+| 3 | App title and description are displayed | Text is readable and correct |PASS | |
 
 ---
 
