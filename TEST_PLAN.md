@@ -26,14 +26,14 @@ This document outlines the test plan for evaluating all features of the Pathways
 
 ---
 
-### 2.2 Base Datapath Screen
+### 2.2 Explore Datapath Screen
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
-| 4 | Datapath diagram loads correctly | Full MIPS diagram is visible and clear | | |
-| 5 | Select R-type instruction | Correct wires and components are highlighted | | |
-| 6 | Select Load instruction | Correct wires and components are highlighted | | |
-| 7 | Select Store instruction | Correct wires and components are highlighted | | |
-| 8 | Select Branch instruction | Correct wires and components are highlighted | | |
+| 4 | Datapath link loads correctly | Buttons are visible and clear |PASS | |
+| 5 | Select Load instruction | Explore / Details Apear Correctly with Info |PASS | |
+| 6 | Select Store instruction | Explore / Details Apear Correctly with Info |PASS | |
+| 7 | Select ALU instruction | Explore / Details Apear Correctly with Info |PASS | |
+| 8 | Select Branch instruction | Explore / Details Apear Correctly with Info | PASS| |
 | 9 | Tap a highlighted component | Popup appears with correct explanation | | |
 | 10 | Tap a highlighted wire | Popup appears with correct explanation | | |
 | 11 | Popup can be dismissed | Popup closes cleanly, diagram remains | | |
