@@ -13,7 +13,7 @@ struct QuizScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress bar
+            // Shows fraction of quiz completed (currentIdx+1 / total)
             ProgressView(value: manager.progress)
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -25,7 +25,8 @@ struct QuizScreen: View {
 
             Divider().padding(.top, 8)
 
-            // Current question
+            // ScrollView wraps both MCQ and puzzle views because puzzle canvases
+            // can exceed the screen height in portrait orientation.
             ScrollView {
                 if let item = manager.currentItem {
                     switch item {
@@ -39,7 +40,7 @@ struct QuizScreen: View {
 
             Divider()
 
-            // Navigation buttons
+            // Bottom navigation bar: Back / Questions jump-menu / Next (or Results on last Q)
             HStack {
                 Button(action: { manager.goBack() }) {
                     Label("Back", systemImage: "chevron.left")
@@ -49,6 +50,8 @@ struct QuizScreen: View {
 
                 Spacer()
 
+                // "Questions" pushes the jump-to menu as a nav destination rather
+                // than a sheet so the user can use the system back button to return.
                 NavigationLink("Questions") {
                     QuizMenuView(manager: manager)
                 }
@@ -87,6 +90,7 @@ struct QuizMenuView: View {
         List {
             ForEach(0..<manager.totalQuestions, id: \.self) { idx in
                 Button(action: {
+                    // Jump to the selected question then close this menu immediately.
                     manager.goTo(index: idx)
                     dismiss()
                 }) {
@@ -106,12 +110,15 @@ struct QuizMenuView: View {
                         Text("Q\(idx + 1) · \(label)")
                             .foregroundColor(.primary)
                         Spacer()
+                        // Show correct/wrong icon only for answered questions so
+                        // unanswered ones don't look like they've been graded.
                         if answered {
                             Image(systemName: manager.isCorrect(at: idx)
                                   ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(manager.isCorrect(at: idx) ? .green : .red)
                                 .font(.subheadline)
                         }
+                        // Arrow indicates where the user currently is in the quiz.
                         if idx == manager.currentIdx {
                             Image(systemName: "arrow.right.circle.fill")
                                 .foregroundColor(.blue)
@@ -161,6 +168,7 @@ struct QuizResultsView: View {
             ? Int(Double(manager.score) / Double(manager.totalQuestions) * 100)
             : 0
         let isPerfect = manager.score == manager.totalQuestions
+        // Ring colour thresholds: ≥70% green, ≥40% orange, <40% red (typical grading bands).
         let ringColor: Color = isPerfect ? .yellow : (pct >= 70 ? .green : (pct >= 40 ? .orange : .red))
 
         return VStack(spacing: 14) {
@@ -253,17 +261,16 @@ struct QuizResultsView: View {
     private func mcqReview(mcq: MCQ, questionIdx: Int, isCorrect: Bool) -> some View {
         let userAnswer = manager.getMCQAnswer(for: questionIdx)
 
-        // Question prompt
         Text(mcq.prompt)
             .font(.subheadline.weight(.medium))
             .fixedSize(horizontal: false, vertical: true)
             .padding(.bottom, 2)
 
         if let userIdx = userAnswer {
-            // Always show the correct answer
+            // Always show the correct answer regardless of whether the user got it right.
             answerRow(option: mcq.options[mcq.correctIdx], kind: .correct)
 
-            // Show user's answer only if it was wrong
+            // Show the user's wrong pick so they can compare it to the correct one.
             if userIdx != mcq.correctIdx {
                 answerRow(option: mcq.options[userIdx], kind: .wrong)
             }
@@ -275,7 +282,7 @@ struct QuizResultsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            // Still show the correct answer
+            // Still reveal the correct answer for unanswered questions.
             answerRow(option: mcq.options[mcq.correctIdx], kind: .correct)
         }
     }
@@ -321,6 +328,7 @@ struct QuizResultsView: View {
     @ViewBuilder
     private func puzzleReview(puzzle: Puzzle, questionIdx: Int, isCorrect: Bool) -> some View {
         let userConns  = Set(manager.getPuzzleAnswer(for: questionIdx) ?? [])
+        // Mirror the same source-of-truth fallback used in QuizManager.isCorrect(at:).
         let required   = correctConnections(for: puzzle.id).isEmpty
             ? Set(puzzle.correctConnections)
             : correctConnections(for: puzzle.id)
