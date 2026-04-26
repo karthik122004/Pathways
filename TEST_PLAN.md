@@ -63,8 +63,8 @@ This document outlines the test plan for evaluating all features of the Pathways
 ### 2.4 Quiz Module
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
-| 27 | Quiz screen loads correctly | Questions are displayed clearly | | |
-| 28 | Questions cover all instruction types | R-type, Load, Store, Branch all represented | | |
+| 27 | Quiz screen loads correctly | Questions are displayed clearly |PASS| |
+| 28 | Questions cover all instruction types | R-type, Load, Store, Branch all represented |PASS | |
 | 29 | Selecting a correct answer | Correct feedback shown with explanation | | |
 | 30 | Selecting an incorrect answer | Incorrect feedback shown with explanation of right answer | | |
 | 31 | Quiz presents different questions each attempt | Questions are randomized from question bank | | |
