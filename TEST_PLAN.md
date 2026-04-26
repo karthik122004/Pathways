@@ -33,11 +33,11 @@ This document outlines the test plan for evaluating all features of the Pathways
 | 5 | Select Load instruction | Explore / Details Apear Correctly with Info |PASS | |
 | 6 | Select Store instruction | Explore / Details Apear Correctly with Info |PASS | |
 | 7 | Select ALU instruction | Explore / Details Apear Correctly with Info |PASS | |
-| 8 | Select Branch instruction | Explore / Details Apear Correctly with Info | PASS| |
-| 9 | Tap a highlighted component | Popup appears with correct explanation | | |
-| 10 | Tap a highlighted wire | Popup appears with correct explanation | | |
-| 11 | Popup can be dismissed | Popup closes cleanly, diagram remains | | |
-| 12 | Non-highlighted elements are tappable | No popup appears OR a "not used" message shows | | |
+| 8 | Select Branch instruction | Explore / Details Apear Correctly  | PASS| |
+| 9 | Tap on Explanation  | Popup appears with correct explanation | PASS| |
+| 10 | Tap on Detailed Page | Popup appears with correct Information |PASS | |
+| 11 | Tab can be dismissed | Information tab closes cleanly| PASS| |
+| 12 | All navigation buttons/links are visible | Each button leads to the correct screen |PASS | |
 
 ---
 
