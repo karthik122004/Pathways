@@ -41,17 +41,8 @@ This document outlines the test plan for evaluating all features of the Pathways
 
 ---
 
-### 2.3 Modified Datapath Screen
-| # | Test Case | Expected Result | Pass/Fail | Notes |
-|---|-----------|-----------------|-----------|-------|
-| 13 | Modified datapath screen loads | New components/wires are visible | | |
-| 14 | New instruction 1 selected | Correct added components highlighted | | |
-| 15 | New instruction 2 selected (if applicable) | Correct added components highlighted | | |
-| 16 | Explanation text for modifications shown | Text explains WHY each change is needed | | |
 
----
-
-### 2.4 Puzzle Feature (Interactive Datapath Completion)
+### 2.3 Puzzle Feature (Interactive Datapath Completion)
 > Based on instructor feedback: user is shown an incomplete datapath and must connect wires/add elements to complete it.
 
 | # | Test Case | Expected Result | Pass/Fail | Notes |
@@ -69,7 +60,7 @@ This document outlines the test plan for evaluating all features of the Pathways
 
 ---
 
-### 2.5 Quiz Module
+### 2.4 Quiz Module
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
 | 27 | Quiz screen loads correctly | Questions are displayed clearly | | |
