@@ -702,41 +702,26 @@ struct PuzzleView: View {
 
     // MARK: - Distractor generation
 
-    /// Finds distractors that share real wire endpoints with active ports.
-    ///
-    /// - Extra output ports: ports whose real wire in allWires leads TO an active input port.
-    ///   So dragging from a distractor output → active input follows a real SVG path.
-    /// - Extra input ports: ports whose real wire in allWires comes FROM an active output port.
-    ///   So dragging from an active output → distractor input follows a real SVG path.
-    ///
-    /// Result: every connection the user can draw — correct or wrong — follows a
-    /// real datapath path and looks identical until Check is pressed.
+    /// Exposes every data-path port not already active as a distractor.
+    /// Ports that appear exclusively in control wires (Control Unit outputs, ALU Control,
+    /// AND gate output, PCSrc MUX select) are never shown — students should not wire
+    /// control signals in the puzzle.
     private func generateDistractors() {
         let activeWires = activeWireIds[puzzle.id] ?? []
         let activeOuts  = Set(activeWires.compactMap { wireById[$0]?.from })
         let activeIns   = Set(activeWires.compactMap { wireById[$0]?.to })
 
-        // Only consider data wires — never add ports for control signals.
-        let dataWires = allWires.filter { !$0.isControl }
+        // Compute which ports appear ONLY in control wires — these are excluded entirely.
+        let controlWirePorts = Set(allWires.filter {  $0.isControl }.flatMap { [$0.from, $0.to] })
+        let dataWirePorts    = Set(allWires.filter { !$0.isControl }.flatMap { [$0.from, $0.to] })
+        let controlOnlyPorts = controlWirePorts.subtracting(dataWirePorts)
 
-        // Output ports NOT active but whose data wire leads INTO an active input port
-        var distOuts = Set<String>()
-        for wire in dataWires {
-            if activeIns.contains(wire.to) && !activeOuts.contains(wire.from) {
-                distOuts.insert(wire.from)
-            }
-        }
-
-        // Input ports NOT active but whose data wire comes FROM an active output port
-        var distIns = Set<String>()
-        for wire in dataWires {
-            if activeOuts.contains(wire.from) && !activeIns.contains(wire.to) {
-                distIns.insert(wire.to)
-            }
-        }
-
-        extraOutputIds = distOuts
-        extraInputIds  = distIns
+        extraOutputIds = Set(allPorts.filter {
+            $0.isOutput && !activeOuts.contains($0.id) && !controlOnlyPorts.contains($0.id)
+        }.map { $0.id })
+        extraInputIds = Set(allPorts.filter {
+            !$0.isOutput && !activeIns.contains($0.id) && !controlOnlyPorts.contains($0.id)
+        }.map { $0.id })
     }
 }
 

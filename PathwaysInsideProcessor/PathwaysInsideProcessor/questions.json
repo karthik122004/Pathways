@@ -24,26 +24,26 @@
   },
   {
     "id": 2,
-    "prompt": "Which control signal enables writing a result back to the Register File?",
+    "prompt": "For an R-type instruction, what path does the ALU result take before being stored in the Register File?",
     "options": [
       {
-        "text": "MemWrite",
-        "explanation": "Incorrect. MemWrite enables writing to Data Memory, not the Register File."
+        "text": "ALU result → Data Memory → Register File",
+        "explanation": "Incorrect. Data Memory is only used for lw and sw; R-type results do not pass through it."
       },
       {
-        "text": "MemRead",
-        "explanation": "Incorrect. MemRead enables reading from Data Memory."
+        "text": "ALU result → MemtoReg MUX → Register File Write Data port",
+        "explanation": "Correct! The MemtoReg MUX passes the ALU result to the Register File Write Data port, where it is stored in the destination register."
       },
       {
-        "text": "RegWrite",
-        "explanation": "Correct! RegWrite being asserted (set to 1) allows the Register File to store a new value in the write register."
+        "text": "ALU result → Branch Adder → Register File",
+        "explanation": "Incorrect. The Branch Adder computes branch targets; it does not carry ALU results."
       },
       {
-        "text": "ALUSrc",
-        "explanation": "Incorrect. ALUSrc selects whether the second ALU operand comes from the Register File or the sign-extended immediate."
+        "text": "ALU result → Sign Extend unit → Register File",
+        "explanation": "Incorrect. The Sign Extend unit processes immediate fields from the instruction, not ALU results."
       }
     ],
-    "correctIdx": 2
+    "correctIdx": 1
   },
   {
     "id": 3,
@@ -113,5 +113,488 @@
       }
     ],
     "correctIdx": 3
+  },
+  {
+    "id": 6,
+    "prompt": "What is the primary role of the ALU in an R-type instruction?",
+    "options": [
+      {
+        "text": "Fetch the next instruction from memory",
+        "explanation": "Incorrect. Instruction fetching is handled by the PC and Instruction Memory, not the ALU."
+      },
+      {
+        "text": "Perform arithmetic or logical operations on two register values",
+        "explanation": "Correct! In R-type instructions, the ALU receives two register operands and performs the specified arithmetic or logical operation."
+      },
+      {
+        "text": "Write data to memory",
+        "explanation": "Incorrect. Writing to memory is done by Data Memory when MemWrite is asserted."
+      },
+      {
+        "text": "Update the program counter unconditionally",
+        "explanation": "Incorrect. The PC is updated by a dedicated adder and MUX logic, not the ALU."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 7,
+    "prompt": "During a load word (lw) instruction, what does the ALU compute?",
+    "options": [
+      {
+        "text": "The branch target address",
+        "explanation": "Incorrect. The branch target is computed by a separate branch adder using PC+4 and the shifted offset."
+      },
+      {
+        "text": "The sum of two source registers",
+        "explanation": "Incorrect. That describes an R-type add instruction; lw uses a base register and a sign-extended offset."
+      },
+      {
+        "text": "The effective memory address by adding a base register and a sign-extended immediate",
+        "explanation": "Correct! For lw, the ALU adds the base register value and the sign-extended offset to produce the memory address."
+      },
+      {
+        "text": "The result of a logical AND operation",
+        "explanation": "Incorrect. AND is an R-type operation; lw uses addition to compute a memory address."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 8,
+    "prompt": "What does the Register File do during an R-type instruction?",
+    "options": [
+      {
+        "text": "Reads two source registers and writes the ALU result to a destination register",
+        "explanation": "Correct! During R-type instructions, the Register File supplies two operands to the ALU and stores the result back into the destination register."
+      },
+      {
+        "text": "Only writes data received from memory",
+        "explanation": "Incorrect. Receiving data from memory describes a load (lw) instruction, not R-type."
+      },
+      {
+        "text": "Reads one register and writes to memory",
+        "explanation": "Incorrect. Store (sw) reads a register and writes to memory; R-type writes back to a register."
+      },
+      {
+        "text": "Computes the branch offset",
+        "explanation": "Incorrect. The branch offset is computed by the branch adder, not the Register File."
+      }
+    ],
+    "correctIdx": 0
+  },
+  {
+    "id": 9,
+    "prompt": "In a store word (sw) instruction, which component provides the data to be written to memory?",
+    "options": [
+      {
+        "text": "The ALU output",
+        "explanation": "Incorrect. The ALU output provides the memory address for sw, not the data to store."
+      },
+      {
+        "text": "The Program Counter",
+        "explanation": "Incorrect. The PC holds the instruction address and is not involved in supplying store data."
+      },
+      {
+        "text": "A source register read from the Register File",
+        "explanation": "Correct! In sw, the ALU computes the address while the data to store comes from a source register read from the Register File."
+      },
+      {
+        "text": "The Instruction Register",
+        "explanation": "Incorrect. The instruction encoding carries the register field numbers, not the actual data values."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 10,
+    "prompt": "What is the function of the Sign Extender in an I-type instruction?",
+    "options": [
+      {
+        "text": "It doubles the register value",
+        "explanation": "Incorrect. The Sign Extender operates on the instruction's immediate field, not a register value."
+      },
+      {
+        "text": "It extends a 16-bit immediate to 32 bits preserving the sign",
+        "explanation": "Correct! The Sign Extender replicates the most significant bit of the 16-bit immediate to fill the upper 16 bits, maintaining the correct two's complement value."
+      },
+      {
+        "text": "It converts floating-point values to integers",
+        "explanation": "Incorrect. The single-cycle MIPS datapath does not include floating-point hardware."
+      },
+      {
+        "text": "It selects between two ALU inputs",
+        "explanation": "Incorrect. Selecting between ALU inputs is the role of the ALUSrc MUX, not the Sign Extender."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 11,
+    "prompt": "During a branch equal (beq) instruction, what does the ALU do?",
+    "options": [
+      {
+        "text": "Adds two registers to compute a memory address",
+        "explanation": "Incorrect. Adding a base register and offset to compute a memory address is what the ALU does for lw and sw."
+      },
+      {
+        "text": "Subtracts two registers and sets the Zero flag if they are equal",
+        "explanation": "Correct! For beq, the ALU subtracts the two source registers; if the result is zero, the Zero flag is set, indicating the registers are equal and the branch is taken."
+      },
+      {
+        "text": "Performs a bitwise OR on the two register values",
+        "explanation": "Incorrect. Bitwise OR is an R-type operation; beq uses subtraction to test equality."
+      },
+      {
+        "text": "Loads a value from memory into a register",
+        "explanation": "Incorrect. Loading from memory is a lw operation, not beq."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 12,
+    "prompt": "What is the role of the MUX that selects between PC+4 and the branch target address?",
+    "options": [
+      {
+        "text": "It selects the ALU operation to perform",
+        "explanation": "Incorrect. The ALU operation is determined by the ALU Control unit, not this MUX."
+      },
+      {
+        "text": "It chooses between sequential execution and branching based on the branch condition",
+        "explanation": "Correct! This MUX uses the AND of the Branch control signal and the ALU Zero flag (PCSrc) to decide whether to take the branch or advance sequentially."
+      },
+      {
+        "text": "It selects which register to write to",
+        "explanation": "Incorrect. The RegDst MUX selects the destination register."
+      },
+      {
+        "text": "It chooses between reading from cache or main memory",
+        "explanation": "Incorrect. The single-cycle datapath does not model cache; this MUX deals only with the next PC value."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 13,
+    "prompt": "In a MIPS R-type instruction, which instruction field selects the destination register?",
+    "options": [
+      {
+        "text": "rs field",
+        "explanation": "Incorrect. The rs field specifies the first source register."
+      },
+      {
+        "text": "rt field",
+        "explanation": "Incorrect. The rt field is the second source register for R-type, or the destination for I-type instructions."
+      },
+      {
+        "text": "rd field",
+        "explanation": "Correct! RegDst=1 for R-type instructions, so the MUX selects the rd field as the write register."
+      },
+      {
+        "text": "shamt field",
+        "explanation": "Incorrect. The shamt field specifies the shift amount for shift instructions; it does not address a register."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 14,
+    "prompt": "What does the MUX controlled by the ALUSrc signal select?",
+    "options": [
+      {
+        "text": "Between the PC and the branch target address",
+        "explanation": "Incorrect. That is the PCSrc MUX's function."
+      },
+      {
+        "text": "Between a register value and a sign-extended immediate as the second ALU input",
+        "explanation": "Correct! ALUSrc=0 passes the Register File output (RD2) to the ALU; ALUSrc=1 passes the sign-extended immediate for I-type instructions."
+      },
+      {
+        "text": "Between the ALU output and memory data for register write-back",
+        "explanation": "Incorrect. That is the MemtoReg MUX's function."
+      },
+      {
+        "text": "Between the rd and rt fields for the destination register",
+        "explanation": "Incorrect. That is the RegDst MUX's function."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 15,
+    "prompt": "During a load word (lw) instruction, what does the MemtoReg MUX select as the write-back value?",
+    "options": [
+      {
+        "text": "The ALU result",
+        "explanation": "Incorrect. MemtoReg=0 selects the ALU result; for lw, MemtoReg=1 selects memory data instead."
+      },
+      {
+        "text": "The data read from Data Memory",
+        "explanation": "Correct! For lw, MemtoReg is set to 1 so the MUX passes the Data Memory output (the loaded value) to the Register File write port."
+      },
+      {
+        "text": "The branch target address",
+        "explanation": "Incorrect. The branch target feeds the PCSrc MUX, not the register write-back MUX."
+      },
+      {
+        "text": "The sign-extended immediate",
+        "explanation": "Incorrect. The sign-extended immediate feeds the ALUSrc MUX as a potential ALU operand, not the write-back path."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 16,
+    "prompt": "What is the purpose of the Program Counter (PC) in the datapath?",
+    "options": [
+      {
+        "text": "It stores the result of the last ALU operation",
+        "explanation": "Incorrect. ALU results are written back to the Register File or Data Memory, not the PC."
+      },
+      {
+        "text": "It holds the address of the current instruction being fetched",
+        "explanation": "Correct! The PC holds the memory address of the instruction currently being fetched and is updated each cycle to point to the next instruction."
+      },
+      {
+        "text": "It tracks how many instructions have been executed",
+        "explanation": "Incorrect. The PC holds the current instruction address, not a count of executed instructions."
+      },
+      {
+        "text": "It stores the top value of the stack",
+        "explanation": "Incorrect. Stack management is handled by software conventions using a designated stack pointer register."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 17,
+    "prompt": "How is the branch target address computed in the datapath?",
+    "options": [
+      {
+        "text": "By adding the sign-extended immediate shifted left by 2 to PC+4",
+        "explanation": "Correct! The branch target = (PC+4) + (sign-extended offset << 2), computed by a dedicated branch adder."
+      },
+      {
+        "text": "By adding the base register to the immediate",
+        "explanation": "Incorrect. Adding a base register to an immediate computes a memory address for lw or sw."
+      },
+      {
+        "text": "By shifting the PC right by 2",
+        "explanation": "Incorrect. The PC is not shifted; the sign-extended offset is shifted left by 2 to convert from word count to byte address."
+      },
+      {
+        "text": "By concatenating the upper bits of PC with the immediate",
+        "explanation": "Incorrect. That describes how J-type jump targets are formed, not branch targets."
+      }
+    ],
+    "correctIdx": 0
+  },
+  {
+    "id": 18,
+    "prompt": "During an R-type instruction, what value does the RegDst MUX select as the write register?",
+    "options": [
+      {
+        "text": "The rs field",
+        "explanation": "Incorrect. The rs field specifies the first source register, not the destination."
+      },
+      {
+        "text": "The rt field",
+        "explanation": "Incorrect. The rt field is the write register for I-type instructions (RegDst=0), not R-type."
+      },
+      {
+        "text": "The rd field",
+        "explanation": "Correct! RegDst=1 for R-type instructions, so the MUX selects the rd field as the destination register."
+      },
+      {
+        "text": "A hardwired register $31",
+        "explanation": "Incorrect. $31 is used as the link register for JAL instructions, not for ordinary R-type operations."
+      }
+    ],
+    "correctIdx": 2
+  },
+  {
+    "id": 19,
+    "prompt": "For a load word (lw) instruction, what path does the loaded value take from Data Memory to the Register File?",
+    "options": [
+      {
+        "text": "Data Memory read data → ALU → Register File",
+        "explanation": "Incorrect. The ALU computes the memory address; the loaded data bypasses the ALU entirely on the way back."
+      },
+      {
+        "text": "Data Memory read data → MemtoReg MUX → Register File Write Data port",
+        "explanation": "Correct! The MemtoReg MUX passes the Data Memory output to the Register File Write Data port so the loaded value is stored in the destination register."
+      },
+      {
+        "text": "Data Memory read data → Sign Extend → Register File",
+        "explanation": "Incorrect. The Sign Extend unit handles the instruction's immediate field; it does not process Data Memory output."
+      },
+      {
+        "text": "Data Memory read data → Branch Adder → Register File",
+        "explanation": "Incorrect. The Branch Adder is used only for computing branch targets, not for register write-back."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 20,
+    "prompt": "What does the Write Register (WR) input of the Register File receive?",
+    "options": [
+      {
+        "text": "The ALU result to be stored",
+        "explanation": "Incorrect. The ALU result arrives at the Write Data (WD) port, not the Write Register (WR) port."
+      },
+      {
+        "text": "The output of the RegDst MUX, which selects between the instruction's rt and rd fields",
+        "explanation": "Correct! The RegDst MUX chooses the destination register number: the rd field for R-type instructions, or the rt field for I-type instructions."
+      },
+      {
+        "text": "The current PC address",
+        "explanation": "Incorrect. The PC value goes to Instruction Memory as the fetch address, not to the Register File."
+      },
+      {
+        "text": "The sign-extended immediate value",
+        "explanation": "Incorrect. The sign-extended immediate feeds the ALUSrc MUX as a potential ALU operand, not the register address input."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 21,
+    "prompt": "For a jump (j) instruction, how is the jump target address formed?",
+    "options": [
+      {
+        "text": "PC + sign-extended immediate",
+        "explanation": "Incorrect. That describes a PC-relative branch target, not a J-type jump."
+      },
+      {
+        "text": "The upper 4 bits of PC+4 concatenated with the 26-bit target field shifted left by 2",
+        "explanation": "Correct! The jump target is {(PC+4)[31:28], instr_index, 2'b00}, giving a 32-bit word-aligned address."
+      },
+      {
+        "text": "The base register value added to the immediate",
+        "explanation": "Incorrect. Adding a base register to an immediate computes a memory address for lw or sw."
+      },
+      {
+        "text": "The full 32-bit address stored in a register",
+        "explanation": "Incorrect. That describes a JR (jump register) instruction, not a J-type jump."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 22,
+    "prompt": "In a store word (sw) instruction, which Register File output carries the data that is written to Data Memory?",
+    "options": [
+      {
+        "text": "RD1 (Read Data 1), which provides the base address",
+        "explanation": "Incorrect. RD1 carries the base register value to the ALU to compute the memory address, not the data to store."
+      },
+      {
+        "text": "RD2 (Read Data 2), which feeds directly into the Data Memory Write Data port",
+        "explanation": "Correct! For sw, RD2 holds the value from the rt register and connects directly to the Data Memory write data input."
+      },
+      {
+        "text": "The Write Data (WD) port output",
+        "explanation": "Incorrect. WD is an input to the Register File, not an output."
+      },
+      {
+        "text": "RD1 after it passes through the ALUSrc MUX",
+        "explanation": "Incorrect. The ALUSrc MUX feeds the ALU's second operand for address computation; it does not connect to the Data Memory write data port."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 23,
+    "prompt": "In a branch equal (beq) instruction, what is the purpose of the Shift Left 2 unit?",
+    "options": [
+      {
+        "text": "It shifts the register values left by 2 before they enter the ALU",
+        "explanation": "Incorrect. The Shift Left 2 unit operates on the sign-extended offset, not the register values that feed the ALU."
+      },
+      {
+        "text": "It converts the sign-extended word offset to a byte offset by multiplying it by 4",
+        "explanation": "Correct! MIPS is byte-addressed, so shifting the word-count offset left by 2 (×4) produces the correct byte displacement to add to PC+4."
+      },
+      {
+        "text": "It shifts the PC value to align it with instruction boundaries",
+        "explanation": "Incorrect. The PC is already word-aligned; the Shift Left 2 operates on the branch offset, not the PC itself."
+      },
+      {
+        "text": "It scales the ALU result for use as a memory address",
+        "explanation": "Incorrect. The ALU result is sent directly to the Data Memory address port without any shifting."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 24,
+    "prompt": "In the MIPS single-cycle datapath, where does the PC+4 Adder send its output?",
+    "options": [
+      {
+        "text": "Only back to the PC register as the next instruction address",
+        "explanation": "Incorrect. PC+4 feeds multiple destinations, not just the PC."
+      },
+      {
+        "text": "To both the PCSrc MUX (as the sequential path) and the Branch Adder (as the base for branch target calculation)",
+        "explanation": "Correct! PC+4 serves as the no-branch next-PC via the PCSrc MUX and as input A to the Branch Adder, which adds the scaled offset to compute the branch target."
+      },
+      {
+        "text": "To the Instruction Memory address input",
+        "explanation": "Incorrect. Instruction Memory receives the current PC value, not PC+4."
+      },
+      {
+        "text": "To the ALU as the second operand",
+        "explanation": "Incorrect. The ALU's second operand comes from the ALUSrc MUX, which selects between RD2 and the sign-extended immediate."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 25,
+    "prompt": "What value is sent to the address input of Data Memory?",
+    "options": [
+      {
+        "text": "The output of the Register File's RD2 port",
+        "explanation": "Incorrect. RD2 carries the rt register value, which feeds the ALUSrc MUX or the Data Memory write data port — not the address port."
+      },
+      {
+        "text": "The ALU result, which represents the computed memory address",
+        "explanation": "Correct! For both lw and sw, the ALU adds the base register and the sign-extended offset to produce the effective address, which is then sent to Data Memory."
+      },
+      {
+        "text": "The sign-extended immediate value directly, bypassing the ALU",
+        "explanation": "Incorrect. The immediate value is an operand to the ALU; it does not bypass the ALU to reach Data Memory."
+      },
+      {
+        "text": "The PC+4 value from the PC Adder",
+        "explanation": "Incorrect. PC+4 feeds the PCSrc MUX and Branch Adder; it has no connection to Data Memory."
+      }
+    ],
+    "correctIdx": 1
+  },
+  {
+    "id": 26,
+    "prompt": "What is the function of Instruction Memory in the fetch stage?",
+    "options": [
+      {
+        "text": "It stores data operands for ALU operations",
+        "explanation": "Incorrect. Data operands are stored in the Register File and Data Memory, not Instruction Memory."
+      },
+      {
+        "text": "It outputs the 32-bit instruction stored at the address given by the PC",
+        "explanation": "Correct! Instruction Memory is read-only during execution; it takes the PC as its address input and outputs the corresponding instruction word."
+      },
+      {
+        "text": "It writes the result of the current instruction back to memory",
+        "explanation": "Incorrect. Write-back to memory is performed by Data Memory using the MemWrite signal."
+      },
+      {
+        "text": "It computes the next PC value",
+        "explanation": "Incorrect. The next PC value is computed by the PC+4 adder and the PCSrc MUX."
+      }
+    ],
+    "correctIdx": 1
   }
 ]

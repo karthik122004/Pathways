@@ -29,6 +29,13 @@ struct HomeView: View {
                 // Feature entry points — each NavigationLink pushes its destination
                 // onto the shared NavigationStack declared above.
                 VStack(spacing: 16) {
+                    NavigationLink(destination: DatapathView()) {
+                        HomeButton(title: "Explore Datapath",
+                                   subtitle: "See how instructions flow through the processor",
+                                   icon: "cpu",
+                                   color: .blue)
+                    }
+
                     NavigationLink(destination: PuzzleSelectionView()) {
                         HomeButton(title: "Datapath Puzzle",
                                    subtitle: "Wire up the processor yourself",

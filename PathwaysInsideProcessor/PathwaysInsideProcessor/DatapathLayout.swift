@@ -460,13 +460,15 @@ let activeWireIds: [String: Set<String>] = [
     ],
 
     // Load Word: lw rt, offset(rs)
+    // rs (RR1) supplies the base address; rt is the DESTINATION register (WR), not a source.
+    // RR2 is not read — lw only needs one source register.
     "load": [
         "w_pc_instrMem",
         "w_pc_pcAdder",
         "w_pcAdder_branchMux",
         "w_branchMux_pc",
         "w_instr_rr1",
-        "w_instr_rr2",
+        // w_instr_rr2 intentionally omitted — lw does not read a second source register
         "w_instr_wrMux0",        // rt field (RegDst=0)
         "w_wrMux_regWr",
         "w_instr_signExtend",
@@ -495,6 +497,8 @@ let activeWireIds: [String: Set<String>] = [
     ],
 
     // Branch Equal: beq rs, rt, label
+    // The AND gate and its wires (w_aluZero_andGate, w_andGate_branchMuxCtrl) are
+    // intentionally omitted — the AND gate is part of branch control logic, not the data path.
     "branch": [
         "w_pc_instrMem",
         "w_pc_pcAdder",
@@ -510,7 +514,6 @@ let activeWireIds: [String: Set<String>] = [
         "w_rd1_aluA",
         "w_rd2_aluMux",
         "w_aluMux_aluB",
-        "w_aluZero_andGate",
     ],
 ]
 
