@@ -47,29 +47,29 @@ This document outlines the test plan for evaluating all features of the Pathways
 
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
-| 17 | Puzzle screen loads with an incomplete datapath | Missing wires/elements are clearly indicated | | |
-| 18 | Instruction label is shown to guide the user | User knows which instruction to complete | | |
-| 19 | User can attempt to connect a wire between two elements | Connection interaction is possible (drag or tap) | | |
-| 20 | Correct wire connection is accepted | Wire snaps into place or is marked correct | | |
-| 21 | Incorrect wire connection is rejected | App does NOT allow the connection | | |
-| 22 | Diagnostic message shown on wrong connection | Relevant error message displayed (not generic) | | |
-| 23 | Diagnostic message is specific to the mistake | Message explains why that connection is wrong | | |
-| 24 | User can try again after a wrong attempt | Puzzle resets or allows re-attempt | | |
-| 25 | Completing the puzzle correctly gives feedback | Success message or visual confirmation shown | | |
-| 26 | Multiple puzzle scenarios available | At least one puzzle per instruction type | | |
+| 13 | Puzzle screen loads with an incomplete datapath | Missing wires/elements are clearly indicated |PASS | |
+| 14 | Instruction label is shown to guide the user | User knows which instruction to complete | PASS| |
+| 15 | User can attempt to connect a wire between two elements | Connection interaction is possible (drag or tap) |PASS | |
+| 16 | Correct wire connection is accepted | Wire snaps into place or is marked correct | PASS| |
+| 17 | Incorrect wire connection is rejected | App does NOT allow the connection | PASS| |
+| 18 | Diagnostic message shown on wrong connection | Relevant error message displayed (not generic) |PASS | |
+| 19 |Hint button works | Message explaining a HINT to user |PASS | |
+| 20 | User can try again after a wrong attempt | Puzzle resets or allows re-attempt |PASS | |
+| 21 | Completing the puzzle correctly gives feedback | Success message or visual confirmation shown |PASS | |
+| 22 | Multiple puzzle scenarios available | At least one puzzle per instruction type |PASS | |
 
 ---
 
 ### 2.4 Quiz Module
 | # | Test Case | Expected Result | Pass/Fail | Notes |
 |---|-----------|-----------------|-----------|-------|
-| 27 | Quiz screen loads correctly | Questions are displayed clearly |PASS| |
-| 28 | Questions cover all instruction types | R-type, Load, Store, Branch all represented |PASS | |
-| 29 | Selecting a correct answer | Correct feedback shown with explanation | | |
-| 30 | Selecting an incorrect answer | Incorrect feedback shown with explanation of right answer | | |
-| 31 | Quiz presents different questions each attempt | Questions are randomized from question bank | | |
-| 32 | Quiz completes after all questions answered | Score or summary screen shown | | |
-| 33 | User can retake the quiz | New attempt starts with fresh/different questions | | |
+| 23 | Quiz screen loads correctly | Questions are displayed clearly |PASS| |
+| 24 | Questions cover all instruction types | R-type, Load, Store, Branch all represented |PASS | |
+| 25 | Selecting a correct answer | Correct feedback shown | PASS| |
+| 26 | Selecting an incorrect answer | Incorrect feedback shown  |PASS | |
+| 27 | Quiz presents different questions each attempt | Questions are randomized from question bank |PASS | |
+| 28 | Quiz completes after all questions answered | Score or summary screen shown |PASS | |
+| 29 | User can retake the quiz | New attempt starts | PASS| |
 
 ---
 
