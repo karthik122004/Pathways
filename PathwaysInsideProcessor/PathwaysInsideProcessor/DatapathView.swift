@@ -29,7 +29,7 @@ struct DatapathView: View {
 
   var body: some View {
     GeometryReader { geo in
-      if geo.size.width> geo.size.height {
+      if geo.size.width > geo.size.height {
         landscapeLayout
       } else {
         portraitLayout
@@ -84,86 +84,100 @@ struct DatapathView: View {
     .padding()
   }
 
-func activeComponentIds(instrType: String) -> Set<String> {
-    switch instrType {
-    case "load":
-        return ["registers", "sign_extend", "alu", "data_memory", "wb_mux"]
-    case "store":
-        return ["registers", "sign_extend", "alu", "data_memory"]
-    case "rtype":
-        return ["registers", "alu_control", "alu", "wb_mux"]
-    case "branch":
-        return ["registers", "alu", "sign_extend", "shift_left2", "branch_adder", "and_gate", "branch_mux"]
-    default:
-        return []
-    }
-}
-  
 var zoomableDiagram: some View {
     ZStack {
-        Image("datapath_full")
-            .resizable()
-            .scaledToFit()
-            .opacity(0.3)
+        GeometryReader { geo in
+            let instrKey       = selectedInstruction.map { instructionKey($0) }
+            let activeComps: Set<String>  = instrKey.map { activeComponentIds(instrType: $0) } ?? []
+            let activeWireSet: Set<String> = instrKey.flatMap { activeWireIds[$0] } ?? []
 
-        // Dynamic component highlighting + click
-        if let instruction = selectedInstruction {
-            GeometryReader { geo in
-                let active = activeComponentIds(instrType: instructionKey(instruction))
-
-                ForEach(allComponents) { comp in
-                    let isActive = active.contains(comp.id)
-                    let center = scalePoint(
-                        CGPoint(x: comp.cx, y: comp.cy),
-                        to: geo.size
-                    )
-
-                    Button {
-                        if isActive {
-                            selectedComponent = comp.id
-                        }
-                    } label: {
-                        Rectangle()
-                            .fill(isActive ? Color.yellow.opacity(0.4) : Color.clear)
-                            .contentShape(Rectangle())
-                            .overlay(
-                                Rectangle()
-                                    .stroke(
-                                        selectedComponent == comp.id ? Color.orange : Color.clear,
-                                        lineWidth: 3
-                                    )
-                            )
+            // Wires — drawn on a Canvas so no SwiftUI view overhead per path
+            Canvas { ctx, size in
+                for wire in allWires {
+                    let path = wirePath(for: wire, scaledTo: size)
+                    let isActive = activeWireSet.contains(wire.id)
+                    let color: Color
+                    if selectedInstruction == nil {
+                        color = wire.isControl ? .gray.opacity(0.3) : .gray.opacity(0.45)
+                    } else if wire.isControl {
+                        color = .gray.opacity(0.2)
+                    } else if isActive {
+                        color = .blue.opacity(0.8)
+                    } else {
+                        color = .gray.opacity(0.12)
                     }
-                    .frame(
-                        width: comp.w * geo.size.width / svgNativeWidth,
-                        height: comp.h * geo.size.height / svgNativeHeight
-                    )
-                    .position(center)
+                    ctx.stroke(path, with: .color(color), lineWidth: isActive ? 2.5 : 1.0)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Components — SwiftUI views so taps work
+            ForEach(allComponents) { comp in
+                let isActive   = activeComps.contains(comp.id)
+                let isSelected = selectedComponent == comp.id
+                let cx  = comp.cx * geo.size.width  / svgNativeWidth
+                let cy  = comp.cy * geo.size.height / svgNativeHeight
+                let w   = comp.w  * geo.size.width  / svgNativeWidth
+                let h   = comp.h  * geo.size.height / svgNativeHeight
+                let labelSize = min(w * 0.24, h * 0.30, 11.0)
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(
+                            selectedInstruction == nil
+                                ? comp.fillColor
+                                : (isActive ? Color.yellow.opacity(0.45) : comp.fillColor.opacity(0.3))
+                        )
+                    RoundedRectangle(cornerRadius: 3)
+                        .stroke(
+                            isSelected ? Color.orange :
+                            (isActive  ? comp.strokeColor : comp.strokeColor.opacity(0.3)),
+                            lineWidth: isSelected ? 3 : (isActive ? 1.5 : 1)
+                        )
+                    Text(comp.label)
+                        .font(.system(size: labelSize, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(
+                            .black.opacity(selectedInstruction == nil || isActive ? 0.85 : 0.3)
+                        )
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.5)
+                        .padding(2)
+                }
+                .frame(width: w, height: h)
+                // contentShape has to come before position — if you put it after,
+                // SwiftUI uses the un-moved layout bounds and every tap lands on the
+                // last component in the array (branch_mux) no matter what you tap
+                .contentShape(Rectangle())
+                .position(x: cx, y: cy)
+                .onTapGesture {
+                    guard isActive else { return }
+                    withAnimation { selectedComponent = isSelected ? nil : comp.id }
                 }
             }
         }
 
-        // Explanation bubble (FIXED)
+        // Explanation bubble
         if let instruction = selectedInstruction,
-           let selectedComponent = selectedComponent {
-
+           let selComp = selectedComponent {
             GeometryReader { geo in
-                let items = explanations(for: instruction)
-                    .filter { $0.componentId == selectedComponent }
-
-                if let comp = compById[selectedComponent],
-                   let item = items.first {
-
-                    let point = scalePoint(
-                        CGPoint(x: comp.cx, y: comp.cy),
-                        to: geo.size
-                    )
-
-                    let yOffset: CGFloat =
-                        comp.cy < svgNativeHeight / 2 ? -60 : 60
-
+                let items = explanations(for: instruction).filter { $0.componentId == selComp }
+                if let comp = compById[selComp], let item = items.first {
+                    let point        = scalePoint(CGPoint(x: comp.cx, y: comp.cy), to: geo.size)
+                    // figure out how tall this component is on screen so the bubble
+                    // clears the component edge instead of sitting on top of it
+                    let scaledHalfH  = (comp.h / 2) * geo.size.height / svgNativeHeight
+                    // top-half components push the bubble downward (toward screen center),
+                    // bottom-half components push it upward — keeps it visible either way
+                    let yOffset: CGFloat = comp.cy < svgNativeHeight / 2
+                        ? scaledHalfH + 55
+                        : -(scaledHalfH + 55)
+                    // clamp so the bubble never slides off the left/right/top/bottom edges
+                    let clampedX = min(max(point.x, 115), geo.size.width  - 115)
+                    let clampedY = min(max(point.y + yOffset, 60), geo.size.height - 60)
                     ExplanationBubble(text: item.text)
-                        .position(x: point.x, y: point.y + yOffset)
+                        .frame(maxWidth: 220)
+                        .position(x: clampedX, y: clampedY)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -172,22 +186,15 @@ var zoomableDiagram: some View {
     .scaleEffect(scale)
     .offset(offset)
     .simultaneousGesture(
-      MagnificationGesture()
-          .onChanged { value in
-              scale = value
-          }
+        MagnificationGesture()
+            .onChanged { value in scale = value }
     )
     .simultaneousGesture(
-      DragGesture()
-          .onChanged { value in
-              offset = value.translation
-          }
+        DragGesture()
+            .onChanged { value in offset = value.translation }
     )
     .onTapGesture(count: 2) {
-        withAnimation {
-            scale = 1.0
-            offset = .zero
-        }
+        withAnimation { scale = 1.0; offset = .zero }
     }
     .padding()
 }
@@ -271,15 +278,17 @@ struct ExplanationBubble: View {
   var body: some View {
     Text(text)
       .font(.caption)
+      // without this, multi-sentence explanations left-align and look weird in a bubble
+      .multilineTextAlignment(.center)
       .padding(10)
       .background(Color.white)
       .cornerRadius(10)
       .shadow(radius: 4)
       .overlay(
         RoundedRectangle(cornerRadius: 10)
-          .stroke(Color.blue, lineWidth: 1)
-        )
-    }
+          .stroke(Color.blue, lineWidth: 1.5)
+      )
+  }
 }
 
 struct DetailView: View {
